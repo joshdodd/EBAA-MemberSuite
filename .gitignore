@@ -1,0 +1,39 @@
+# Operating system files.
+.DS_Store
+Thumbs.db
+
+# Editor and IDE files.
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# PHP dependencies and tooling caches.
+/vendor/
+/.phpunit.cache/
+/.phpunit.result.cache
+/.phpcs-cache
+/.php-cs-fixer.cache
+
+# JavaScript dependencies and build caches.
+/node_modules/
+/.npm/
+/.yarn/
+/.parcel-cache/
+/.cache/
+
+# Generated build artifacts.
+/build/
+/dist/
+*.zip
+
+# Local configuration, secrets, and logs.
+.env
+.env.*
+!.env.example
+*.log
+
+# Test and coverage output.
+/coverage/
+/tests/_output/

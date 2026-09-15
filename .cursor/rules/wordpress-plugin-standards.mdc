@@ -1,0 +1,83 @@
+---
+description: Follow WordPress Plugin Handbook, WPCS, security, architecture, and performance standards when writing or reviewing plugin code
+alwaysApply: true
+---
+
+# WordPress Plugin Development Standards
+
+Follow the [Plugin Handbook](https://developer.wordpress.org/plugins/) and [WordPress Coding Standards (WPCS)](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/php/). Prefer core APIs over custom infrastructure.
+
+## 1. Coding Standards & Environment
+
+- Adhere strictly to WPCS. Indent with tabs. Spaces around operators and after commas. Space after control-structure keywords: `if ( $x ) {`.
+- Yoda conditions for literals: `if ( 'draft' === $status )`. No closing `?>` in pure PHP files. No `extract()`. No `query_posts()`.
+- Target **PHP 8.1+** (`Requires PHP: 8.1` in the plugin header). Use 8.1+ features (typed properties, enums, `readonly`, union types). Do not use newer syntax if the header still claims an older PHP version.
+- Prefix **all** functions, classes, globals, options, transients, hooks, CPTs, REST routes, and cron events. This plugin uses `msebaa_` / `Msebaa_` / namespace `Msebaa\\`. Never prefix with `wp_`, `__`, or `_`.
+
+```php
+// ❌ BAD
+function get_settings() {}
+global $options;
+update_option( 'settings', $value );
+
+// ✅ GOOD
+function msebaa_get_settings() {}
+global $msebaa_options;
+update_option( 'msebaa_settings', $value );
+```
+
+- Main file: `membersuite-ebaa.php` with a valid plugin header (`Plugin Name`, `Description`, `Version`, `Author`, `License`, `Text Domain`, `Requires at least`, `Requires PHP`).
+- Every PHP file: `if ( ! defined( 'ABSPATH' ) ) { exit; }`
+- Bootstrap only: define constants, load files, register hooks. No side effects on include.
+- Layout: `includes/`, `admin/`, `public/`, `languages/`, plus `uninstall.php`.
+- One class/interface/trait per file. Class `Msebaa_Thing` → `class-msebaa-thing.php`. Other PHP files: lowercase, hyphenated. PHPDoc on functions/classes.
+
+## 2. Security First
+
+Never trust user input. Check capability, then nonce, then validate/sanitize, then act. Sanitize on the way in; escape on the way out.
+
+```php
+// ❌ BAD
+update_option( 'msebaa_settings', $_POST['settings'] );
+echo $_GET['msg'];
+$wpdb->query( "SELECT * FROM $wpdb->posts WHERE ID = {$_GET['id']}" );
+
+// ✅ GOOD
+if ( ! current_user_can( 'manage_options' ) ) {
+    wp_die( esc_html__( 'You are not allowed to do this.', 'membersuite-ebaa' ) );
+}
+check_admin_referer( 'msebaa_save_settings' );
+$settings = msebaa_sanitize_settings( wp_unslash( $_POST['settings'] ?? array() ) );
+update_option( 'msebaa_settings', $settings );
+echo esc_html( $message );
+$wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->posts} WHERE ID = %d", $id ) );
+```
+
+- Sanitize before saving: `sanitize_text_field()`, `absint()`, `sanitize_email()`, `sanitize_key()`, `wp_kses_post()`.
+- Escape before output: `esc_html()`, `esc_attr()`, `esc_url()`, `esc_js()`, `wp_kses_post()`.
+- CSRF: WordPress nonces — `wp_nonce_field()` / `wp_create_nonce()` on output; `check_admin_referer()` / `check_ajax_referer()` / `wp_verify_nonce()` on input.
+- SQL: `$wpdb->prepare()` for every custom query (`%s`, `%d`, `%f`, `%i`).
+- Privileged actions: `current_user_can()` with a specific cap (not a role name). REST: always set `permission_callback`; never `'__return_true'` for privileged routes.
+- HTTP: `wp_remote_*` / `wp_safe_remote_*` for untrusted URLs. Do not store secrets in the repo. Do not echo raw `$_GET` / `$_POST` / `$_REQUEST` / `$_SERVER`.
+
+## 3. WordPress Architecture
+
+- Hooks only: execute side effects with `add_action()`; modify data with `add_filter()`. Never edit WordPress core.
+- Admin settings: official **Settings API** (`register_setting()`, `add_settings_section()`, `add_settings_field()`). Do not hand-roll option forms that bypass it.
+- Activation / deactivation on the main plugin file:
+
+```php
+register_activation_hook( MSEBAA_PLUGIN_FILE, 'msebaa_activate' );
+register_deactivation_hook( MSEBAA_PLUGIN_FILE, 'msebaa_deactivate' );
+```
+
+- Activation may create tables, seed default options, and flush rewrite rules. Deactivation unschedules cron and flushes rewrites — it must **not** delete user data.
+- `uninstall.php` runs only on delete. Wipe plugin options, custom tables, transients, and scheduled events. Guard with `WP_UNINSTALL_PLUGIN`.
+- Use core APIs: Options API, `WP_Error`, Cron, HTTP API, `WP_List_Table`. Do not reinvent them.
+
+## 4. UI & Performance
+
+- Enqueue with `wp_enqueue_script()` / `wp_enqueue_style()` on `wp_enqueue_scripts` or `admin_enqueue_scripts`. Never hardcode `<script>` or `<link>` tags. Do not load CDN copies of libraries WordPress already ships (jQuery, Underscore, etc.).
+- All user-facing strings must be translatable: `__()`, `_e()`, `esc_html__()`, `esc_attr__()`, `_n()` with text domain `membersuite-ebaa`.
+- Avoid bloated queries. Cache expensive API/DB results with transients (`set_transient()` / `get_transient()`), prefixed `msebaa_`. Invalidate on the data-change hook. Do not cache unsanitized user input.
+- Keep functions small and hook-driven. Load admin code only in admin; load front-end assets only where they are used.
