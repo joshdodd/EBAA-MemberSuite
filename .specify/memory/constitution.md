@@ -1,25 +1,3 @@
-<!--
-SYNC IMPACT REPORT (scratch — remove before committing the amended constitution)
-Version change: (none / unratified template) → 1.0.0
-Bump rationale: Initial ratification. All template placeholders replaced with concrete,
-testable governance for the MemberSuite EBAA WordPress plugin.
-
-Modified principles:
-- [PRINCIPLE_1_NAME] → I. WordPress-Native and Standards-Compliant
-- [PRINCIPLE_2_NAME] → II. MemberSuite Is the System of Record
-- [PRINCIPLE_3_NAME] → III. Credential and Session Security (NON-NEGOTIABLE)
-- [PRINCIPLE_4_NAME] → IV. Stable Theme-Facing API
-- [PRINCIPLE_5_NAME] → V. Cache-First with Graceful Degradation
-
-Added sections:
-- [SECTION_2_NAME] → Scope and Technical Constraints
-- [SECTION_3_NAME] → Development Workflow and Quality Gates
-
-Removed sections: none
-
-Follow-up TODOs: none. RATIFICATION_DATE set to the date of initial adoption.
--->
-
 # MemberSuite EBAA Constitution
 
 ## Core Principles
@@ -62,13 +40,13 @@ accounts, not just site content.
 
 ### IV. Stable Theme-Facing API
 
-The plugin MUST expose between six and eight documented, theme-friendly helper functions (for
-example: current member, membership status, member benefit eligibility, profile field access,
-login state, and logout URL). These functions form the public contract: they MUST be safely
-callable from any theme template after `init`, MUST return predictable typed values with safe
-defaults when no member is present, and MUST NOT emit output or fatal on API failure. Internal
-classes and API clients are implementation details and MUST NOT be presented as theme API.
-Changing or removing a helper's signature or return contract is a breaking change.
+The plugin MUST expose documented, theme-friendly helper functions (for example: current member,
+membership status, member benefit eligibility, profile field access, login state, and logout URL).
+These functions form the public contract: they MUST be safely callable from any theme template
+after `init`, MUST return predictable typed values with safe defaults when no member is present,
+and MUST NOT emit output or fatal on API failure. Internal classes and API clients are
+implementation details and MUST NOT be presented as theme API. Changing or removing a helper's
+signature or return contract is a breaking change.
 
 Rationale: themes are written once and maintained by others; an unstable helper surface turns
 every plugin update into a site-wide regression risk.
@@ -78,27 +56,51 @@ every plugin update into a site-wide regression risk.
 Every MemberSuite response used for page rendering MUST pass through a caching layer built on
 WordPress transients with `msebaa_`-prefixed keys and an explicit expiration. Theme helper
 functions MUST serve from cache on the common path and MUST NOT trigger a remote API call per
-template tag. Caches MUST be invalidated on the events that change the underlying data — at
+template tag. Members-only entitlement checks MUST also use cached membership status on the
+common path. Caches MUST be invalidated on the events that change the underlying data — at
 minimum login, profile sync, and membership status change. When MemberSuite is unreachable or
-returns an error, the plugin MUST degrade gracefully: return safe defaults, surface a
-human-readable message, and never expose a fatal error or raw API payload to a visitor.
+returns an error, theme helpers MUST degrade gracefully (safe defaults, human-readable messages,
+no fatals or raw API payloads). Members-only gating MUST degrade by failing closed: if membership
+status cannot be confirmed, restricted content and media MUST NOT be exposed.
 
 Rationale: an external API on the render path becomes the site's availability ceiling unless
-caching and fallback behavior are mandatory rather than optional.
+caching is mandatory; gated content must prefer denial over accidental disclosure when status is
+unknown.
+
+### VI. Members-Only Content Gating (Fail Closed)
+
+Administrators MUST be able to mark posts, pages, and media as Members Only via a checkbox in the
+editor; the flag MUST persist with that item. Entitlement MUST use one definition everywhere:
+signed in and currently receiving member benefits (`receivesMemberBenefits`), except site
+administrators who MAY retain operational access. Signed-in users who do not receive member
+benefits MUST be treated as non-members for gating.
+
+For members-only posts and pages, non-members MUST NOT see restricted body content and MUST see a
+clear message that the content is for logged-in members only. For members-only media, non-member
+direct URL access MUST redirect to the configured login page with a denial message and MUST NOT
+serve file contents. Marking Members Only MUST require an appropriate capability; the flag MUST be
+sanitized on save. Restricted content MUST never leak through public responses, error pages, or
+logs. Unmarked content remains public. Enforcement applies on single post/page view and on direct
+media URL access; archive or search teasers MAY remain visible, but opening the item MUST enforce
+the gate.
+
+Rationale: membership value depends on reliable boundaries; a single entitlement rule and
+fail-closed behavior keep posts, pages, and files from accidentally becoming public.
 
 ## Scope and Technical Constraints
 
 - Platform: WordPress plugin, PHP 8.1+, text domain `membersuite-ebaa`.
-- Integration: MemberSuite REST API, Outside SSO (Option 1) only. Other SSO modes are out of scope
-  until this constitution is amended.
-- Required capabilities, and no more: shortcode-based embeddable login form, user
-  provisioning/linking, core profile data sync, role mapping from `receivesMemberBenefits`, 6–8
-  theme helper functions, and the caching layer that serves them.
+- Integration: MemberSuite REST API, Outside SSO only. Other SSO modes are out of scope until this
+  constitution is amended.
+- Required capabilities, and no more: shortcode-based embeddable login form; user
+  provisioning/linking; core profile data sync; role mapping from `receivesMemberBenefits`; theme
+  helper functions; the caching layer that serves them; and members-only content gating for posts,
+  pages, and media (editor checkbox, post/page denial message, media login redirect).
 - Structure: `includes/`, `admin/`, `public/`, `languages/`, plus `uninstall.php`. Every PHP file
   guards direct access with an `ABSPATH` check; one class per file.
 - Lifecycle: activation seeds defaults and registers roles; deactivation clears scheduled events
-  but MUST NOT delete user data; `uninstall.php` removes plugin options, transients, and cron
-  events.
+  but MUST NOT delete user data; `uninstall.php` removes plugin options, Members Only flags,
+  transients, and cron events without deleting WordPress users or the underlying content/media.
 - All user-facing strings MUST be translatable. Assets MUST be enqueued, never hardcoded, and
   loaded only on the screens that use them.
 - Anything not required by the capabilities above is out of scope; new surface area requires a
@@ -108,11 +110,13 @@ caching and fallback behavior are mandatory rather than optional.
 
 - Every change MUST be traceable to a spec and plan produced through the Spec Kit workflow before
   implementation begins.
-- Authentication, user provisioning, role mapping, and cache invalidation paths MUST be verified
-  against a MemberSuite sandbox — including the failure cases (bad credentials, API timeout,
-  missing profile fields) — before release.
+- Authentication, user provisioning, role mapping, cache invalidation, and members-only gating
+  paths MUST be verified against a MemberSuite sandbox — including failure cases (bad credentials,
+  API timeout, missing profile fields, signed-out access, signed-in non-member access) — before
+  release.
 - Code review MUST confirm compliance with these principles. A reviewer MUST reject changes that
-  bypass sanitization, escaping, nonce checks, the caching layer, or the helper-function contract.
+  bypass sanitization, escaping, nonce checks, the caching layer, the helper-function contract, or
+  fail-closed members-only gating.
 - Breaking changes to the theme-facing helper functions require a MAJOR version bump and a
   migration note for theme maintainers.
 - Complexity MUST be justified in review; the simplest implementation satisfying the principle
@@ -134,4 +138,4 @@ Compliance is reviewed at every pull request. Runtime development guidance lives
 `.cursor/rules/wordpress-plugin-standards.mdc`, which MUST remain consistent with this
 constitution; if the two disagree, this constitution wins and the rule file MUST be corrected.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-15 | **Last Amended**: 2026-09-15
+**Version**: 1.1.0 | **Ratified**: 2026-09-15 | **Last Amended**: 2026-09-21
