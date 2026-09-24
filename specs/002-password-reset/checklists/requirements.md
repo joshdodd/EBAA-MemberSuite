@@ -1,4 +1,4 @@
-# Specification Quality Checklist: MemberSuite SSO and Member Access
+# Specification Quality Checklist: MemberSuite Password Reset Email
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-09-21
@@ -31,8 +31,5 @@
 
 ## Notes
 
-- Validation iteration 1 (2026-09-21): All items pass (initial SSO + media-only scope).
-- Validation iteration 2 (2026-09-21): Spec updated to expand Members Only to posts, pages, and media via editor checkbox; post/page denial shows in-place members-only message; media keeps login redirect. All items re-validated and pass.
-- Validation iteration 3 (2026-09-21): After `/speckit-clarify` (5 answers). Re-validated: all 16/16 items still pass. Clarifications covered edit capability, return-after-login, role mapping, SSO-only for linked users, and login link on post/page denial.
-- Product systems (WordPress, MemberSuite, Outside SSO, `receivesMemberBenefits`) are named as domain systems of record per the project constitution, not as implementation choices.
-- Constitution v1.1.0 includes members-only content gating; spec Assumptions aligned.
+- Validation pass 1 (2026-09-21): All items pass after softening Assumptions to keep protocol-level token details out of the stakeholder spec (those remain in the completion report / later plan).
+- Ready for `/speckit-clarify` (optional) or `/speckit-plan`.

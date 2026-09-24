@@ -23,8 +23,14 @@ WordPress user or link an existing one via a stable MemberSuite identifier — n
 matching alone. Role assignment MUST derive deterministically from `receivesMemberBenefits`, with
 exactly one mapping path from that field to a WordPress role.
 
+Credential recovery MUST remain MemberSuite-owned: the plugin MAY request that MemberSuite send its
+standard password-reset email for a visitor-supplied address, and MUST NOT collect, store, or set a
+new MemberSuite password on this website. Requesting that vendor reset email is an identity-service
+action in support of Outside SSO; it MUST NOT be treated as CRM profile or membership write-back.
+
 Rationale: a single, deterministic source of truth is what keeps entitlement decisions auditable
-and prevents WordPress and MemberSuite from silently disagreeing about who is a member.
+and prevents WordPress and MemberSuite from silently disagreeing about who is a member; password
+change completion stays on MemberSuite’s side.
 
 ### III. Credential and Session Security (NON-NEGOTIABLE)
 
@@ -94,8 +100,13 @@ fail-closed behavior keep posts, pages, and files from accidentally becoming pub
   constitution is amended.
 - Required capabilities, and no more: shortcode-based embeddable login form; user
   provisioning/linking; core profile data sync; role mapping from `receivesMemberBenefits`; theme
-  helper functions; the caching layer that serves them; and members-only content gating for posts,
-  pages, and media (editor checkbox, post/page denial message, media login redirect).
+  helper functions; the caching layer that serves them; members-only content gating for posts,
+  pages, and media (editor checkbox, post/page denial message, media login redirect); and
+  MemberSuite password-reset email recovery (visitor-facing reset request via shortcode and from
+  the sign-in experience; administrator-configured Association ID, Association Key / tenant, and
+  API service-account credentials for authorized non-SSO calls; request MemberSuite’s standard
+  reset email only — no on-site set-password UI, no WordPress password-reset for linked members,
+  and no CRM profile/membership write-backs).
 - Structure: `includes/`, `admin/`, `public/`, `languages/`, plus `uninstall.php`. Every PHP file
   guards direct access with an `ABSPATH` check; one class per file.
 - Lifecycle: activation seeds defaults and registers roles; deactivation clears scheduled events
@@ -110,10 +121,11 @@ fail-closed behavior keep posts, pages, and files from accidentally becoming pub
 
 - Every change MUST be traceable to a spec and plan produced through the Spec Kit workflow before
   implementation begins.
-- Authentication, user provisioning, role mapping, cache invalidation, and members-only gating
-  paths MUST be verified against a MemberSuite sandbox — including failure cases (bad credentials,
-  API timeout, missing profile fields, signed-out access, signed-in non-member access) — before
-  release.
+- Authentication, user provisioning, role mapping, cache invalidation, members-only gating, and
+  password-reset email request paths MUST be verified against a MemberSuite sandbox — including
+  failure cases (bad credentials, API timeout, missing profile fields, signed-out access,
+  signed-in non-member access, missing API configuration, and rate-limited or unknown-email reset
+  requests) — before release.
 - Code review MUST confirm compliance with these principles. A reviewer MUST reject changes that
   bypass sanitization, escaping, nonce checks, the caching layer, the helper-function contract, or
   fail-closed members-only gating.
@@ -138,4 +150,4 @@ Compliance is reviewed at every pull request. Runtime development guidance lives
 `.cursor/rules/wordpress-plugin-standards.mdc`, which MUST remain consistent with this
 constitution; if the two disagree, this constitution wins and the rule file MUST be corrected.
 
-**Version**: 1.1.0 | **Ratified**: 2026-09-15 | **Last Amended**: 2026-09-21
+**Version**: 1.2.0 | **Ratified**: 2026-09-15 | **Last Amended**: 2026-09-21
