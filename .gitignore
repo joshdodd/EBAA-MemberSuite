@@ -33,6 +33,8 @@ Thumbs.db
 .env.*
 !.env.example
 *.log
+*.cache
+*.tmp
 
 # Test and coverage output.
 /coverage/

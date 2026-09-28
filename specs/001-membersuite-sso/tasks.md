@@ -28,10 +28,10 @@ WordPress plugin at repository root per `plan.md`: `membersuite-ebaa.php`, `incl
 
 **Purpose**: Plugin skeleton and directory layout
 
-- [ ] T001 Create plugin directory layout `includes/`, `admin/`, `public/css/`, `public/js/`, `languages/` per `specs/001-membersuite-sso/plan.md`
-- [ ] T002 Create main plugin bootstrap `membersuite-ebaa.php` with valid plugin header (`Plugin Name`, `Description`, `Version`, `Author`, `License`, `Text Domain: membersuite-ebaa`, `Requires at least`, `Requires PHP: 8.1`), `ABSPATH` guard, and constants `MSEBAA_PLUGIN_FILE`, `MSEBAA_PLUGIN_DIR`, `MSEBAA_VERSION`
-- [ ] T003 [P] Create empty stub files for planned classes: `includes/class-msebaa-plugin.php`, `includes/class-msebaa-settings.php`, `includes/class-msebaa-api-client.php`, `includes/class-msebaa-sso.php`, `includes/class-msebaa-user-repository.php`, `includes/class-msebaa-cache.php`, `includes/class-msebaa-roles.php`, `includes/class-msebaa-helpers.php`, `includes/class-msebaa-content-gate.php`, `includes/class-msebaa-media-gate.php`, `admin/class-msebaa-admin-settings.php`, `admin/class-msebaa-members-only-meta.php`, `public/class-msebaa-shortcode.php` (each with `ABSPATH` guard and class skeleton)
-- [ ] T004 Wire bootstrap in `membersuite-ebaa.php` to require stubs and call `Msebaa_Plugin` boot on `plugins_loaded` without side effects on bare include
+- [X] T001 Create plugin directory layout `includes/`, `admin/`, `public/css/`, `public/js/`, `languages/` per `specs/001-membersuite-sso/plan.md`
+- [X] T002 Create main plugin bootstrap `membersuite-ebaa.php` with valid plugin header (`Plugin Name`, `Description`, `Version`, `Author`, `License`, `Text Domain: membersuite-ebaa`, `Requires at least`, `Requires PHP: 8.1`), `ABSPATH` guard, and constants `MSEBAA_PLUGIN_FILE`, `MSEBAA_PLUGIN_DIR`, `MSEBAA_VERSION`
+- [X] T003 [P] Create empty stub files for planned classes: `includes/class-msebaa-plugin.php`, `includes/class-msebaa-settings.php`, `includes/class-msebaa-api-client.php`, `includes/class-msebaa-sso.php`, `includes/class-msebaa-user-repository.php`, `includes/class-msebaa-cache.php`, `includes/class-msebaa-roles.php`, `includes/class-msebaa-helpers.php`, `includes/class-msebaa-content-gate.php`, `includes/class-msebaa-media-gate.php`, `admin/class-msebaa-admin-settings.php`, `admin/class-msebaa-members-only-meta.php`, `public/class-msebaa-shortcode.php` (each with `ABSPATH` guard and class skeleton)
+- [X] T004 Wire bootstrap in `membersuite-ebaa.php` to require stubs and call `Msebaa_Plugin` boot on `plugins_loaded` without side effects on bare include
 
 ---
 
@@ -41,14 +41,14 @@ WordPress plugin at repository root per `plan.md`: `membersuite-ebaa.php`, `incl
 
 **⚠️ CRITICAL**: No user story work until this phase is complete
 
-- [ ] T005 Implement settings defaults and reader in `includes/class-msebaa-settings.php`: option key `msebaa_settings` with fields `tenant_id` (sanitize_text_field), `association_id` (sanitize_text_field, optional), `login_page_id` (absint), `http_timeout` (absint, clamp 5–30, default 15); expose `msebaa_get_settings(): array`
-- [ ] T006 [P] Implement Settings API admin page in `admin/class-msebaa-admin-settings.php` (`manage_options` only): register_setting sanitize callback, sections/fields for tenant_id, association_id, login_page_id (page dropdown), http_timeout; register menu and load only in admin
-- [ ] T007 [P] Implement role registration in `includes/class-msebaa-roles.php`: role slug `msebaa_member`, display name translatable “Member”, capabilities baseline same as `subscriber`; provide `msebaa_map_role_from_benefits( bool $receives_benefits, \WP_User $user ): void` that sets `msebaa_member` when true else `subscriber`, and MUST NOT overwrite privileged roles (e.g. `administrator` / `manage_options`)
-- [ ] T008 [P] Implement membership cache in `includes/class-msebaa-cache.php`: transient key `msebaa_member_{user_id}`, TTL default 1800s, get/set/invalidate methods; store snapshot array with `receives_member_benefits`, profile subset, `synced_at`
-- [ ] T009 Implement user meta repository in `includes/class-msebaa-user-repository.php` for identity link fields: `msebaa_owner_id` (GUID, unique among linked users), `msebaa_user_id`, `msebaa_membership_id` (may be empty), `msebaa_receives_member_benefits` (`'1'`/`'0'`; null/false → `'0'`), `msebaa_first_name`, `msebaa_last_name`, `msebaa_email` (sanitize_email), `msebaa_last_synced` (GMT), `msebaa_linked` (`'1'`); methods find-by-owner-id, save-link, get-snapshot (never link by email alone)
-- [ ] T010 Implement MemberSuite REST client skeleton in `includes/class-msebaa-api-client.php`: base URL `https://rest.membersuite.com`, all calls via `wp_remote_get`/`wp_remote_post`, HTTPS, timeout from settings; methods stubs for `login_user`, `jwt_sso`, `bearer_token_sso`, `whoami`; never log passwords or tokens; return `WP_Error` on failure
-- [ ] T011 Implement activation/deactivation in `includes/class-msebaa-plugin.php` (or bootstrap): `register_activation_hook` seeds `msebaa_settings` defaults and registers `msebaa_member` role; `register_deactivation_hook` clears scheduled events only (MUST NOT delete user data); wire hooks from `membersuite-ebaa.php`
-- [ ] T012 Implement `uninstall.php` guarded by `WP_UNINSTALL_PLUGIN`: delete `msebaa_settings`, all `_msebaa_members_only` post meta, all `msebaa_*` user meta and `msebaa_*` transients, remove role `msebaa_member` (remap those users to `subscriber`); MUST NOT delete WordPress users or posts/pages/media files
+- [X] T005 Implement settings defaults and reader in `includes/class-msebaa-settings.php`: option key `msebaa_settings` with fields `tenant_id` (sanitize_text_field), `association_id` (sanitize_text_field, optional), `login_page_id` (absint), `http_timeout` (absint, clamp 5–30, default 15); expose `msebaa_get_settings(): array`
+- [X] T006 [P] Implement Settings API admin page in `admin/class-msebaa-admin-settings.php` (`manage_options` only): register_setting sanitize callback, sections/fields for tenant_id, association_id, login_page_id (page dropdown), http_timeout; register menu and load only in admin
+- [X] T007 [P] Implement role registration in `includes/class-msebaa-roles.php`: role slug `msebaa_member`, display name translatable “Member”, capabilities baseline same as `subscriber`; provide `msebaa_map_role_from_benefits( bool $receives_benefits, \WP_User $user ): void` that sets `msebaa_member` when true else `subscriber`, and MUST NOT overwrite privileged roles (e.g. `administrator` / `manage_options`)
+- [X] T008 [P] Implement membership cache in `includes/class-msebaa-cache.php`: transient key `msebaa_member_{user_id}`, TTL default 1800s, get/set/invalidate methods; store snapshot array with `receives_member_benefits`, profile subset, `synced_at`
+- [X] T009 Implement user meta repository in `includes/class-msebaa-user-repository.php` for identity link fields: `msebaa_owner_id` (GUID, unique among linked users), `msebaa_user_id`, `msebaa_membership_id` (may be empty), `msebaa_receives_member_benefits` (`'1'`/`'0'`; null/false → `'0'`), `msebaa_first_name`, `msebaa_last_name`, `msebaa_email` (sanitize_email), `msebaa_last_synced` (GMT), `msebaa_linked` (`'1'`); methods find-by-owner-id, save-link, get-snapshot (never link by email alone)
+- [X] T010 Implement MemberSuite REST client skeleton in `includes/class-msebaa-api-client.php`: base URL `https://rest.membersuite.com`, all calls via `wp_remote_get`/`wp_remote_post`, HTTPS, timeout from settings; methods stubs for `login_user`, `jwt_sso`, `bearer_token_sso`, `whoami`; never log passwords or tokens; return `WP_Error` on failure
+- [X] T011 Implement activation/deactivation in `includes/class-msebaa-plugin.php` (or bootstrap): `register_activation_hook` seeds `msebaa_settings` defaults and registers `msebaa_member` role; `register_deactivation_hook` clears scheduled events only (MUST NOT delete user data); wire hooks from `membersuite-ebaa.php`
+- [X] T012 Implement `uninstall.php` guarded by `WP_UNINSTALL_PLUGIN`: delete `msebaa_settings`, all `_msebaa_members_only` post meta, all `msebaa_*` user meta and `msebaa_*` transients, remove role `msebaa_member` (remap those users to `subscriber`); MUST NOT delete WordPress users or posts/pages/media files
 
 **Checkpoint**: Foundation ready — user story implementation can begin
 
@@ -62,14 +62,14 @@ WordPress plugin at repository root per `plan.md`: `membersuite-ebaa.php`, `incl
 
 ### Implementation for User Story 1
 
-- [ ] T013 [P] [US1] Complete API client Outside SSO methods in `includes/class-msebaa-api-client.php` per `specs/001-membersuite-sso/contracts/membersuite-rest-sso.md`: `POST /platform/v2/loginUser/{tenantId}`, `POST /platform/v2/JWTSSO/{tenantId}` (form-urlencoded; extract `tokenGUID` from Location), `GET /platform/v2/bearerTokenSSO`, `GET /platform/v2/whoami` with Bearer idToken
-- [ ] T014 [US1] Implement SSO orchestration in `includes/class-msebaa-sso.php`: validate nonce `msebaa_sso_login`; sanitize email; call API client; on success provision/link via user repository by `ownerId` only; sync profile fields; call role mapper; set auth cookie; invalidate/set cache; `wp_safe_redirect` to validated return URL; on failure leave signed out with generic translatable errors (no API dumps)
-- [ ] T015 [US1] Implement login redirect context storage in `includes/class-msebaa-sso.php` (or small helper in same file): accept `msebaa_redirect` query/POST, validate with `wp_validate_redirect` (local only), persist via short-lived transient (~15 min) through SSO callback; clear after use
-- [ ] T016 [P] [US1] Implement shortcode `[msebaa_sso_login]` in `public/class-msebaa-shortcode.php` per `specs/001-membersuite-sso/contracts/sso-shortcode.md`: logged-out form (email, password, nonce `msebaa_sso_nonce`, optional redirect); logged-in “already signed in” notice; enqueue `public/css/msebaa-sso-form.css` only when shortcode present
-- [ ] T017 [P] [US1] Add minimal styles in `public/css/msebaa-sso-form.css` for accessible form layout (no hardcoded script/link tags elsewhere)
-- [ ] T018 [US1] Register shortcode and SSO form POST handler (admin-post or `init` action) from `includes/class-msebaa-plugin.php` / `public/class-msebaa-shortcode.php`
-- [ ] T019 [US1] Block WordPress password login for linked users in `includes/class-msebaa-sso.php`: filter `authenticate` to return `WP_Error` directing to SSO/login page when `msebaa_linked` is set; filter `allow_password_reset` to false for linked users; unlinked users (including admins) unchanged
-- [ ] T020 [US1] Ensure SSO success maps `receivesMemberBenefits`: true → `msebaa_member`, null/false → `subscriber`, never downgrade privileged roles; missing `ownerId` fails closed (no session)
+- [X] T013 [P] [US1] Complete API client Outside SSO methods in `includes/class-msebaa-api-client.php` per `specs/001-membersuite-sso/contracts/membersuite-rest-sso.md`: `POST /platform/v2/loginUser/{tenantId}`, `POST /platform/v2/JWTSSO/{tenantId}` (form-urlencoded; extract `tokenGUID` from Location), `GET /platform/v2/bearerTokenSSO`, `GET /platform/v2/whoami` with Bearer idToken
+- [X] T014 [US1] Implement SSO orchestration in `includes/class-msebaa-sso.php`: validate nonce `msebaa_sso_login`; sanitize email; call API client; on success provision/link via user repository by `ownerId` only; sync profile fields; call role mapper; set auth cookie; invalidate/set cache; `wp_safe_redirect` to validated return URL; on failure leave signed out with generic translatable errors (no API dumps)
+- [X] T015 [US1] Implement login redirect context storage in `includes/class-msebaa-sso.php` (or small helper in same file): accept `msebaa_redirect` query/POST, validate with `wp_validate_redirect` (local only), persist via short-lived transient (~15 min) through SSO callback; clear after use
+- [X] T016 [P] [US1] Implement shortcode `[msebaa_sso_login]` in `public/class-msebaa-shortcode.php` per `specs/001-membersuite-sso/contracts/sso-shortcode.md`: logged-out form (email, password, nonce `msebaa_sso_nonce`, optional redirect); logged-in “already signed in” notice; enqueue `public/css/msebaa-sso-form.css` only when shortcode present
+- [X] T017 [P] [US1] Add minimal styles in `public/css/msebaa-sso-form.css` for accessible form layout (no hardcoded script/link tags elsewhere)
+- [X] T018 [US1] Register shortcode and SSO form POST handler (admin-post or `init` action) from `includes/class-msebaa-plugin.php` / `public/class-msebaa-shortcode.php`
+- [X] T019 [US1] Block WordPress password login for linked users in `includes/class-msebaa-sso.php`: filter `authenticate` to return `WP_Error` directing to SSO/login page when `msebaa_linked` is set; filter `allow_password_reset` to false for linked users; unlinked users (including admins) unchanged
+- [X] T020 [US1] Ensure SSO success maps `receivesMemberBenefits`: true → `msebaa_member`, null/false → `subscriber`, never downgrade privileged roles; missing `ownerId` fails closed (no session)
 
 **Checkpoint**: User Story 1 fully functional and independently testable (MVP)
 
@@ -83,11 +83,11 @@ WordPress plugin at repository root per `plan.md`: `membersuite-ebaa.php`, `incl
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Implement theme helpers in `includes/class-msebaa-helpers.php` (or loaded functions file) per `specs/001-membersuite-sso/contracts/theme-helpers.md`: `msebaa_is_user_logged_in()`, `msebaa_is_member()`, `msebaa_receives_member_benefits()`, `msebaa_get_current_member(): ?array`, `msebaa_get_member_field( string $key ): string`, `msebaa_get_login_url( string $redirect = '' ): string`, `msebaa_get_logout_url( string $redirect = '' ): string` — all safe after `init`, no echo/die, defaults as contracted
-- [ ] T022 [US2] Wire helpers to read only from `Msebaa_Cache` / user repository snapshot in `includes/class-msebaa-helpers.php` — MUST NOT trigger remote MemberSuite calls per template tag; unknown/missing benefits → `false`
-- [ ] T023 [US2] Ensure `msebaa_get_login_url()` uses configured `login_page_id` from settings with safe `msebaa_redirect` append; fallback `home_url( '/' )` when unset
-- [ ] T024 [P] [US2] Add PHPDoc blocks on each helper in `includes/class-msebaa-helpers.php` documenting return types and safe defaults for theme authors
-- [ ] T025 [US2] Load helpers from `includes/class-msebaa-plugin.php` on every front/admin request after `init` so templates can call them reliably
+- [X] T021 [US2] Implement theme helpers in `includes/class-msebaa-helpers.php` (or loaded functions file) per `specs/001-membersuite-sso/contracts/theme-helpers.md`: `msebaa_is_user_logged_in()`, `msebaa_is_member()`, `msebaa_receives_member_benefits()`, `msebaa_get_current_member(): ?array`, `msebaa_get_member_field( string $key ): string`, `msebaa_get_login_url( string $redirect = '' ): string`, `msebaa_get_logout_url( string $redirect = '' ): string` — all safe after `init`, no echo/die, defaults as contracted
+- [X] T022 [US2] Wire helpers to read only from `Msebaa_Cache` / user repository snapshot in `includes/class-msebaa-helpers.php` — MUST NOT trigger remote MemberSuite calls per template tag; unknown/missing benefits → `false`
+- [X] T023 [US2] Ensure `msebaa_get_login_url()` uses configured `login_page_id` from settings with safe `msebaa_redirect` append; fallback `home_url( '/' )` when unset
+- [X] T024 [P] [US2] Add PHPDoc blocks on each helper in `includes/class-msebaa-helpers.php` documenting return types and safe defaults for theme authors
+- [X] T025 [US2] Load helpers from `includes/class-msebaa-plugin.php` on every front/admin request after `init` so templates can call them reliably
 
 **Checkpoint**: User Stories 1 and 2 work independently
 
@@ -101,13 +101,13 @@ WordPress plugin at repository root per `plan.md`: `membersuite-ebaa.php`, `incl
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Implement Members Only checkbox meta box in `admin/class-msebaa-members-only-meta.php` for `post`, `page`, and `attachment`: save meta `_msebaa_members_only` as `'1'` when checked, delete meta when unchecked; require `current_user_can( 'edit_post', $post_id )` (or attachment equivalent) + nonce; users who cannot edit MUST NOT change the flag
-- [ ] T027 [US3] Implement shared entitlement predicate in `includes/class-msebaa-content-gate.php` (reusable by media gate): allowed if not members-only OR `manage_options` OR (logged in AND cached/synced `receives_member_benefits === true`); missing/unknown benefits → deny (fail closed)
-- [ ] T028 [US3] Implement post/page body gating in `includes/class-msebaa-content-gate.php`: on singular `the_content`, if flagged and not allowed, replace body with translatable “for logged-in members only” message including login link from `msebaa_get_login_url( get_permalink() )`; do not strip archive teasers
-- [ ] T029 [US3] Implement media URL rewriting and download endpoint in `includes/class-msebaa-media-gate.php`: filter `wp_get_attachment_url` (and related) so members-only attachments point to gated route (e.g. `?msebaa_download={attachment_id}`); on request, if allowed stream file with correct headers; if denied `wp_safe_redirect` to login page with non-member file message + return URL; also guard attachment singular via `template_redirect`
-- [ ] T030 [US3] Integrate return-after-login for media and content denials with US1 redirect context in `includes/class-msebaa-sso.php` / gates: after successful member SSO, redirect to original post/page/download URL when now entitled; otherwise remain denied
-- [ ] T031 [US3] Register meta box, content filters, and media gate hooks from `includes/class-msebaa-plugin.php` (admin class only in admin; front gates on public requests)
-- [ ] T032 [US3] Confirm uninstall path still deletes `_msebaa_members_only` without deleting attachments (verify `uninstall.php` covers US3 meta)
+- [X] T026 [P] [US3] Implement Members Only checkbox meta box in `admin/class-msebaa-members-only-meta.php` for `post`, `page`, and `attachment`: save meta `_msebaa_members_only` as `'1'` when checked, delete meta when unchecked; require `current_user_can( 'edit_post', $post_id )` (or attachment equivalent) + nonce; users who cannot edit MUST NOT change the flag
+- [X] T027 [US3] Implement shared entitlement predicate in `includes/class-msebaa-content-gate.php` (reusable by media gate): allowed if not members-only OR `manage_options` OR (logged in AND cached/synced `receives_member_benefits === true`); missing/unknown benefits → deny (fail closed)
+- [X] T028 [US3] Implement post/page body gating in `includes/class-msebaa-content-gate.php`: on singular `the_content`, if flagged and not allowed, replace body with translatable “for logged-in members only” message including login link from `msebaa_get_login_url( get_permalink() )`; do not strip archive teasers
+- [X] T029 [US3] Implement media URL rewriting and download endpoint in `includes/class-msebaa-media-gate.php`: filter `wp_get_attachment_url` (and related) so members-only attachments point to gated route (e.g. `?msebaa_download={attachment_id}`); on request, if allowed stream file with correct headers; if denied `wp_safe_redirect` to login page with non-member file message + return URL; also guard attachment singular via `template_redirect`
+- [X] T030 [US3] Integrate return-after-login for media and content denials with US1 redirect context in `includes/class-msebaa-sso.php` / gates: after successful member SSO, redirect to original post/page/download URL when now entitled; otherwise remain denied
+- [X] T031 [US3] Register meta box, content filters, and media gate hooks from `includes/class-msebaa-plugin.php` (admin class only in admin; front gates on public requests)
+- [X] T032 [US3] Confirm uninstall path still deletes `_msebaa_members_only` without deleting attachments (verify `uninstall.php` covers US3 meta)
 
 **Checkpoint**: All three user stories independently functional
 
@@ -117,11 +117,13 @@ WordPress plugin at repository root per `plan.md`: `membersuite-ebaa.php`, `incl
 
 **Purpose**: i18n, security pass, sandbox validation across stories
 
-- [ ] T033 [P] Ensure all visitor-facing strings use `__()`, `_e()`, `esc_html__()`, etc. with text domain `membersuite-ebaa` across `public/`, `admin/`, and `includes/`
-- [ ] T034 [P] Generate or stub `languages/membersuite-ebaa.pot` for translator bootstrap
-- [ ] T035 Security pass: confirm no passwords/tokens in logs or HTML; all outputs escaped; SSO and meta saves use nonces; settings require `manage_options`; HTTP only via `wp_remote_*`
+- [X] T033 [P] Ensure all visitor-facing strings use `__()`, `_e()`, `esc_html__()`, etc. with text domain `membersuite-ebaa` across `public/`, `admin/`, and `includes/`
+- [X] T034 [P] Generate or stub `languages/membersuite-ebaa.pot` for translator bootstrap
+- [X] T035 Security pass: confirm no passwords/tokens in logs or HTML; all outputs escaped; SSO and meta saves use nonces; settings require `manage_options`; HTTP only via `wp_remote_*`
 - [ ] T036 Run end-to-end validation against MemberSuite sandbox using `specs/001-membersuite-sso/quickstart.md` Scenarios A–E; fix any gaps found
-- [ ] T037 [P] Add brief theme-helper usage notes (PHPDoc or `readme.txt` Plugin URI / description section) pointing theme authors at the seven helpers without exposing internal classes
+  - Validated on `https://ebaa.local` (sandbox tenant): A3, A4, B, C, D all pass; E verified read-only (destructive on a live clone). Gaps found and fixed: `authenticate` filter priority (linked users could still sign in with a WordPress password), `msebaa_member` role never re-created after activation, failed sign-in redirected to the home page and lost the error message.
+  - Remaining: A1, A2 (linked meta after a real sign-in), A5, A6 — need sandbox logins with `receivesMemberBenefits` true and false.
+- [X] T037 [P] Add brief theme-helper usage notes (PHPDoc or `readme.txt` Plugin URI / description section) pointing theme authors at the seven helpers without exposing internal classes
 
 ---
 

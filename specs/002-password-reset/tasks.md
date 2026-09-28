@@ -30,10 +30,10 @@ WordPress plugin root per `plan.md`: `includes/`, `admin/`, `public/`, `uninstal
 
 **Purpose**: Ensure additive class files exist for password-reset work
 
-- [ ] T001 Create stub `includes/class-msebaa-password-reset.php` and `includes/class-msebaa-rate-limit.php` with `ABSPATH` guards and `Msebaa_*` class skeletons
-- [ ] T002 [P] Create stub `public/class-msebaa-password-reset-shortcode.php` with `ABSPATH` guard and class skeleton for `[msebaa_password_reset]`
-- [ ] T003 [P] Create `public/css/msebaa-password-reset.css` placeholder for reset-form styles
-- [ ] T004 Wire new stubs into plugin boot in `includes/class-msebaa-plugin.php` (or `membersuite-ebaa.php` if boot lives there) without executing reset side effects on bare include
+- [X] T001 Create stub `includes/class-msebaa-password-reset.php` and `includes/class-msebaa-rate-limit.php` with `ABSPATH` guards and `Msebaa_*` class skeletons
+- [X] T002 [P] Create stub `public/class-msebaa-password-reset-shortcode.php` with `ABSPATH` guard and class skeleton for `[msebaa_password_reset]`
+- [X] T003 [P] Create `public/css/msebaa-password-reset.css` placeholder for reset-form styles
+- [X] T004 Wire new stubs into plugin boot in `includes/class-msebaa-plugin.php` (or `membersuite-ebaa.php` if boot lives there) without executing reset side effects on bare include
 
 ---
 
@@ -43,15 +43,17 @@ WordPress plugin root per `plan.md`: `includes/`, `admin/`, `public/`, `uninstal
 
 **⚠️ CRITICAL**: No user story work until this phase is complete
 
-- [ ] T005 **Create if absent** (else skip to extend tasks): shared plugin infrastructure from `specs/001-membersuite-sso/` — at minimum `includes/class-msebaa-settings.php`, `includes/class-msebaa-api-client.php`, `public/class-msebaa-shortcode.php` (`[msebaa_sso_login]`), and boot wiring in `includes/class-msebaa-plugin.php` / `membersuite-ebaa.php` / `admin/class-msebaa-admin-settings.php` as needed so later “extend” tasks have real targets. Follow 001 contracts for Outside SSO login skeleton; do not invent alternate option keys.
-- [ ] T006 Create or extend settings defaults and reader in `includes/class-msebaa-settings.php`: require `tenant_id` (`sanitize_text_field`), `association_id` (`sanitize_text_field`), `api_user_email` (`sanitize_email`), `api_user_password` (stored secret); keep `http_timeout` absint clamp 5–30 default 15; expose `msebaa_get_settings(): array` and `msebaa_has_api_credentials(): bool`
-- [ ] T007 Create or extend Settings API admin UI in `admin/class-msebaa-admin-settings.php` (`manage_options`): fields for Association ID, Association Key (`tenant_id`), API user email, API user password (type password, never re-display); admin label MUST be “Association Key” (not “Tenant” alone); sanitize callback retains prior password when submitted password is empty; helper text “Leave blank to keep the current password”
-- [ ] T008 [P] Implement rate limiter in `includes/class-msebaa-rate-limit.php`: transient key `msebaa_pwreset_{visitor_hash}`, TTL 3600s, limit **5** per visitor; methods `is_limited()`, `record_attempt()`; visitor hash from opaque hash of IP (+ UA if available); `record_attempt()` used only when under limit and an MS call was attempted (per `data-model.md`)
-- [ ] T009 Create or extend API-user login + Bearer cache in `includes/class-msebaa-api-client.php`: `POST /platform/v2/loginUser/{tenantId}` with API email/password; cache `idToken` in transient `msebaa_api_id_token` TTL **14400** (4h); Authorization header `Bearer ` + token (space required); clear cache on 401 and when API email/password/tenant settings change; never log token or password
-- [ ] T010 **Abort/escalation gate (REST only)**: Before coding a reset call body, confirm in MemberSuite sandbox Swagger (Platform + Security) an authenticated REST operation that triggers MemberSuite’s standard password-reset email without CRM profile/membership writes. If none exists: **ABORT** further MemberSuite-call work for this feature; escalate to MemberSuite CSM; do **not** implement portal HTML scrape or `ForgotPassword.aspx` POST; do **not** invent a non-REST workaround. Resume only after CSM documents a REST path **or** `/speckit-specify` amends the spec. If a path exists, encapsulate it as `request_password_reset_email( string $email )` in `includes/class-msebaa-api-client.php` per `specs/002-password-reset/contracts/membersuite-password-reset-api.md`; return `true` or `WP_Error`; no Individual/Membership create/update/delete
-- [ ] T011 Update `uninstall.php` to delete `msebaa_settings` (including API password), transient `msebaa_api_id_token`, and all `msebaa_pwreset_*` transients; MUST NOT delete WordPress users
+- [X] T005 **Create if absent** (else skip to extend tasks): shared plugin infrastructure from `specs/001-membersuite-sso/` — at minimum `includes/class-msebaa-settings.php`, `includes/class-msebaa-api-client.php`, `public/class-msebaa-shortcode.php` (`[msebaa_sso_login]`), and boot wiring in `includes/class-msebaa-plugin.php` / `membersuite-ebaa.php` / `admin/class-msebaa-admin-settings.php` as needed so later “extend” tasks have real targets. Follow 001 contracts for Outside SSO login skeleton; do not invent alternate option keys.
+- [X] T006 Create or extend settings defaults and reader in `includes/class-msebaa-settings.php`: require `tenant_id` (`sanitize_text_field`), `association_id` (`sanitize_text_field`), `api_user_email` (`sanitize_email`), `api_user_password` (stored secret); keep `http_timeout` absint clamp 5–30 default 15; expose `msebaa_get_settings(): array` and `msebaa_has_api_credentials(): bool`
+- [X] T007 Create or extend Settings API admin UI in `admin/class-msebaa-admin-settings.php` (`manage_options`): fields for Association ID, Association Key (`tenant_id`), API user email, API user password (type password, never re-display); admin label MUST be “Association Key” (not “Tenant” alone); sanitize callback retains prior password when submitted password is empty; helper text “Leave blank to keep the current password”
+- [X] T008 [P] Implement rate limiter in `includes/class-msebaa-rate-limit.php`: transient key `msebaa_pwreset_{visitor_hash}`, TTL 3600s, limit **5** per visitor; methods `is_limited()`, `record_attempt()`; visitor hash from opaque hash of IP (+ UA if available); `record_attempt()` used only when under limit and an MS call was attempted (per `data-model.md`)
+- [X] T009 Create or extend API-user login + Bearer cache in `includes/class-msebaa-api-client.php`: `POST /platform/v2/loginUser/{tenantId}` with API email/password; cache `idToken` in transient `msebaa_api_id_token` TTL **14400** (4h); Authorization header `Bearer ` + token (space required); clear cache on 401 and when API email/password/tenant settings change; never log token or password
+- [X] T010 **Abort/escalation gate (REST only)**: Before coding a reset call body, confirm in MemberSuite sandbox Swagger (Platform + Security) an authenticated REST operation that triggers MemberSuite’s standard password-reset email without CRM profile/membership writes. If none exists: **ABORT** further MemberSuite-call work for this feature; escalate to MemberSuite CSM; do **not** implement portal HTML scrape or `ForgotPassword.aspx` POST; do **not** invent a non-REST workaround. Resume only after CSM documents a REST path **or** `/speckit-specify` amends the spec. If a path exists, encapsulate it as `request_password_reset_email( string $email )` in `includes/class-msebaa-api-client.php` per `specs/002-password-reset/contracts/membersuite-password-reset-api.md`; return `true` or `WP_Error`; no Individual/Membership create/update/delete
+- [X] T011 Update `uninstall.php` to delete `msebaa_settings` (including API password), transient `msebaa_api_id_token`, and all `msebaa_pwreset_*` transients; MUST NOT delete WordPress users
 
 **Checkpoint**: Foundation ready — user stories can begin (only if T010 found a REST path or was formally deferred via spec amendment)
+
+> **T010 status (2026-09-28): PASSED.** Security Swagger documents `GET /security/v1/portalUsers/{tenantId}/sendForgottenPortalPasswordEmail` (`PortalUsers_SendForgottenPortalPasswordEmail`). Encapsulated as `Msebaa_Api_Client::request_password_reset_email()`. Sandbox Bearer call with a non-member address returned accepted transport. No portal scrape.
 
 ---
 
@@ -65,14 +67,14 @@ WordPress plugin root per `plan.md`: `includes/`, `admin/`, `public/`, `uninstal
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Implement orchestration in `includes/class-msebaa-password-reset.php`: verify nonce action `msebaa_password_reset` (field `msebaa_pwreset_nonce`); `sanitize_email` on `msebaa_reset_email`; reject empty/invalid with validation error (no MS call, no `record_attempt`); if `! msebaa_has_api_credentials()` → unavailable (no MS call, no `record_attempt`); if rate limited → same non-revealing confirmation as FR-003 and **do not** call MemberSuite and **do not** `record_attempt`; else call `request_password_reset_email`, then `record_attempt()` (including when MS returns transport/`WP_Error`), map auth/transport failures to unavailable, map accepted/ambiguous MS outcomes to identical non-revealing confirmation; never reveal account existence or rate-limit state
-- [ ] T013 [P] [US1] Implement shortcode `[msebaa_password_reset]` in `public/class-msebaa-password-reset-shortcode.php` per `specs/002-password-reset/contracts/password-reset-shortcode.md`: email field, submit, nonce action `msebaa_password_reset` / field `msebaa_pwreset_nonce`; in-place messages only (no redirect); enqueue `public/css/msebaa-password-reset.css` only when shortcode present
-- [ ] T014 [P] [US1] Style reset form and confirmation/unavailable/validation states in `public/css/msebaa-password-reset.css` (accessible, no hardcoded `<link>` tags)
-- [ ] T015 [US1] Register shortcode and POST handler from `includes/class-msebaa-plugin.php` / `public/class-msebaa-password-reset-shortcode.php`
-- [ ] T016 [US1] Create or extend `[msebaa_sso_login]` in `public/class-msebaa-shortcode.php` (create SSO form per 001 if absent): add “Forgot password?” control that **MUST** reveal an inline reset panel on the same embed (v1 required); link-to-standalone-page is documented fallback only if inline cannot ship in the same release; reuse orchestration from `class-msebaa-password-reset.php`
-- [ ] T017 [US1] Ensure visitor-facing strings for confirmation, unavailable, and validation use text domain `membersuite-ebaa` and escape on output in `public/class-msebaa-password-reset-shortcode.php` and related templates
-- [ ] T018 [P] [US1] Allow password-reset submit while the visitor is already signed in (`includes/class-msebaa-password-reset.php` / shortcodes): do not require sign-out; do not change the WordPress session password (FR-012)
-- [ ] T019 [P] [US1] Ensure reset form paths never invoke WordPress `retrieve_password` / lost-password email for this feature in `includes/class-msebaa-password-reset.php` and related handlers (FR-013)
+- [X] T012 [US1] Implement orchestration in `includes/class-msebaa-password-reset.php`: verify nonce action `msebaa_password_reset` (field `msebaa_pwreset_nonce`); `sanitize_email` on `msebaa_reset_email`; reject empty/invalid with validation error (no MS call, no `record_attempt`); if `! msebaa_has_api_credentials()` → unavailable (no MS call, no `record_attempt`); if rate limited → same non-revealing confirmation as FR-003 and **do not** call MemberSuite and **do not** `record_attempt`; else call `request_password_reset_email`, then `record_attempt()` (including when MS returns transport/`WP_Error`), map auth/transport failures to unavailable, map accepted/ambiguous MS outcomes to identical non-revealing confirmation; never reveal account existence or rate-limit state
+- [X] T013 [P] [US1] Implement shortcode `[msebaa_password_reset]` in `public/class-msebaa-password-reset-shortcode.php` per `specs/002-password-reset/contracts/password-reset-shortcode.md`: email field, submit, nonce action `msebaa_password_reset` / field `msebaa_pwreset_nonce`; in-place messages only (no redirect); enqueue `public/css/msebaa-password-reset.css` only when shortcode present
+- [X] T014 [P] [US1] Style reset form and confirmation/unavailable/validation states in `public/css/msebaa-password-reset.css` (accessible, no hardcoded `<link>` tags)
+- [X] T015 [US1] Register shortcode and POST handler from `includes/class-msebaa-plugin.php` / `public/class-msebaa-password-reset-shortcode.php`
+- [X] T016 [US1] Create or extend `[msebaa_sso_login]` in `public/class-msebaa-shortcode.php` (create SSO form per 001 if absent): add “Forgot password?” control that **MUST** reveal an inline reset panel on the same embed (v1 required); link-to-standalone-page is documented fallback only if inline cannot ship in the same release; reuse orchestration from `class-msebaa-password-reset.php`
+- [X] T017 [US1] Ensure visitor-facing strings for confirmation, unavailable, and validation use text domain `membersuite-ebaa` and escape on output in `public/class-msebaa-password-reset-shortcode.php` and related templates
+- [X] T018 [P] [US1] Allow password-reset submit while the visitor is already signed in (`includes/class-msebaa-password-reset.php` / shortcodes): do not require sign-out; do not change the WordPress session password (FR-012)
+- [X] T019 [P] [US1] Ensure reset form paths never invoke WordPress `retrieve_password` / lost-password email for this feature in `includes/class-msebaa-password-reset.php` and related handlers (FR-013)
 
 **Checkpoint**: User Story 1 independently testable (MVP)
 
@@ -88,12 +90,16 @@ WordPress plugin root per `plan.md`: `includes/`, `admin/`, `public/`, `uninstal
 
 *(Implementation of settings UI and blank-password retain is in T006–T007; Phase 4 verifies completeness.)*
 
-- [ ] T020 [US2] Confirm T007 admin field labels/descriptions (Association ID, Association Key, API user email/password) meet SC-006 so an admin can configure without developer help in `admin/class-msebaa-admin-settings.php`
-- [ ] T021 [US2] Confirm T007/T006 save path invalidates `msebaa_api_id_token` when `tenant_id`, `api_user_email`, or `api_user_password` changes in `admin/class-msebaa-admin-settings.php` / `includes/class-msebaa-settings.php`; wire only if missing
-- [ ] T022 [US2] Confirm T012 public reset path uses `msebaa_has_api_credentials()` so missing/incomplete settings show unavailable (not false success) via `includes/class-msebaa-password-reset.php`
-- [ ] T023 [P] [US2] Audit front-end and error paths so API password, `idToken`, and association secrets never appear in HTML, redirects, or visitor messages across `public/` and `includes/class-msebaa-password-reset.php`
+- [X] T020 [US2] Confirm T007 admin field labels/descriptions (Association ID, Association Key, API user email/password) meet SC-006 so an admin can configure without developer help in `admin/class-msebaa-admin-settings.php`
+- [X] T021 [US2] Confirm T007/T006 save path invalidates `msebaa_api_id_token` when `tenant_id`, `api_user_email`, or `api_user_password` changes in `admin/class-msebaa-admin-settings.php` / `includes/class-msebaa-settings.php`; wire only if missing
+- [X] T022 [US2] Confirm T012 public reset path uses `msebaa_has_api_credentials()` so missing/incomplete settings show unavailable (not false success) via `includes/class-msebaa-password-reset.php`
+- [X] T023 [P] [US2] Audit front-end and error paths so API password, `idToken`, and association secrets never appear in HTML, redirects, or visitor messages across `public/` and `includes/class-msebaa-password-reset.php`
 
 **Checkpoint**: US1 and US2 both work for sandbox acceptance
+
+> **T022 status (2026-09-28): PASSED.** `Msebaa_Password_Reset::process_submission()` returns `unavailable` when `msebaa_has_api_credentials()` is false, with no MemberSuite call and no rate-limit increment.
+>
+> **T023 audit result (2026-09-28): PASS.** Reset confirmation/unavailable/validation copy is fixed translated strings. `public/class-msebaa-password-reset-shortcode.php` and the SSO inline panel output `esc_html` / `esc_attr` only. No API password, `idToken`, or association secrets in visitor HTML. Re-run if visitor-facing copy changes.
 
 ---
 
@@ -101,10 +107,18 @@ WordPress plugin root per `plan.md`: `includes/`, `admin/`, `public/`, `uninstal
 
 **Purpose**: Sandbox confirmation of API path, i18n, security
 
-- [ ] T024 Re-confirm concrete MemberSuite reset-email REST endpoint in sandbox; lock path/parameters in `includes/class-msebaa-api-client.php` and update `specs/002-password-reset/contracts/membersuite-password-reset-api.md` with the final operation name. **Same abort gate as T010**: if only a portal scrape remains available, stop and escalate to CSM / require spec amendment — do not ship a non-REST workaround
-- [ ] T025 [P] Ensure all new user-facing strings are translatable with text domain `membersuite-ebaa` in `admin/` and `public/` password-reset files
-- [ ] T026 Security pass: no CRM writes from reset feature; nonces on reset POST; `manage_options` on settings; no secrets in logs
-- [ ] T027 Run `specs/002-password-reset/quickstart.md` Scenarios A–B against MemberSuite sandbox; verify A1 in-place confirmation within 30 seconds (SC-001); fix gaps
+- [X] T024 Re-confirm concrete MemberSuite reset-email REST endpoint in sandbox; lock path/parameters in `includes/class-msebaa-api-client.php` and update `specs/002-password-reset/contracts/membersuite-password-reset-api.md` with the final operation name. **Same abort gate as T010**: if only a portal scrape remains available, stop and escalate to CSM / require spec amendment — do not ship a non-REST workaround
+- [X] T025 [P] Ensure all new user-facing strings are translatable with text domain `membersuite-ebaa` in `admin/` and `public/` password-reset files
+- [X] T026 Security pass: no CRM writes from reset feature; nonces on reset POST; `manage_options` on settings; no secrets in logs
+- [X] T027 Run `specs/002-password-reset/quickstart.md` Scenarios A–B against MemberSuite sandbox; verify A1 in-place confirmation within 30 seconds (SC-001); fix gaps
+
+> **T024 status (2026-09-28): LOCKED.** Security Swagger still documents `GET /security/v1/portalUsers/{tenantId}/sendForgottenPortalPasswordEmail` (`PortalUsers_SendForgottenPortalPasswordEmail`): path `tenantId`, required query `email`, optional `nextUrl` unused in v1. Locked as `Msebaa_Api_Client::PASSWORD_RESET_OPERATION` / `PASSWORD_RESET_PATH`. Authenticated sandbox GET for a non-member address returned HTTP 400 `{"message":"User not found."}` (mapped to accepted transport). No portal scrape.
+>
+> **T025 status (2026-09-28): PASS.** Visitor and admin password-reset strings in `admin/` and `public/` use text domain `membersuite-ebaa`. `languages/membersuite-ebaa.pot` regenerated so those strings are in the catalog.
+>
+> **T026 status (2026-09-28): PASS.** Reset call is GET only (no Individual/Membership writes). Reset POST verifies nonce `msebaa_password_reset` before any MemberSuite call. Settings screen and Settings API require `manage_options`. API password, `idToken`, and the MemberSuite “User not found” body are not logged or echoed. Removed a duplicated nonce/email parse in `process_submission()`.
+>
+> **T027 status (2026-09-28): PASS with one live-mail limit.** On `https://ebaa.local/password-reset/`, a non-member submit showed the in-place confirmation on the same URL in well under 30 seconds (MemberSuite round trip about 0.7s). Unknown address does not leak existence. Sixth submit in the hour kept that same confirmation and left the rate-limit counter at 5. Login page “Forgot password?” opens an inline panel on `/login/` and posts in place. Clearing API credentials returns the unavailable message and does not increment the limiter; credentials were restored. Blank-password sanitize retains the stored secret and the admin password field renders empty. A known-member inbox delivery (A1 mail, A3 complete-the-reset) was not executed: this site’s API user is the live association, and a 200 would email a real member.
 
 ---
 

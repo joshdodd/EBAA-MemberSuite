@@ -1,0 +1,36 @@
+/**
+ * MemberSuite EBAA — SSO login form styles.
+ *
+ * Enqueued only when [msebaa_sso_login] is present on the page.
+ * Minimal accessible layout; expanded in T017.
+ */
+
+.msebaa-sso-form {
+	max-width: 28rem;
+}
+
+.msebaa-sso-form__field {
+	margin-block: 0.75rem;
+}
+
+.msebaa-sso-form__field label {
+	display: block;
+	margin-bottom: 0.25rem;
+	font-weight: 600;
+}
+
+.msebaa-sso-form__field input {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.msebaa-sso-form__error {
+	margin-bottom: 1rem;
+	color: #b32d2e;
+}
+
+.msebaa-sso-form__actions {
+	margin-block-start: 1rem;
+}

@@ -28,13 +28,23 @@ Authorization: Bearer <idToken>
 
 ## 2. Request password-reset email
 
-```text
-POST (or documented Security/Platform operation)
+**Locked 2026-09-28 (T024).** Reconfirmed against live Security Swagger (`https://rest.membersuite.com/security/swagger/docs/v1`). This is the only reset-email operation. Do not replace it with a portal scrape or `ForgotPassword.aspx` POST.
+
+```http
+GET /security/v1/portalUsers/{tenantId}/sendForgottenPortalPasswordEmail?email={email}
 Authorization: Bearer <idToken>
-Body/query: visitor email (and association/tenant context as required by the operation)
+Accept: application/json
 ```
 
-**Concrete path**: Confirm in MemberSuite sandbox Swagger (Platform + Security) during implementation; encapsulate in `request_password_reset_email( $email )`. Prefer an operation that triggers MemberSuite’s standard reset email without CRM profile writes.
+| Item | Value |
+|------|--------|
+| Operation | `PortalUsers_SendForgottenPortalPasswordEmail` |
+| Path param | `tenantId` — Association Key (same partition key as `loginUser`) |
+| Query | `email` (required); `nextUrl` (optional, unused in v1) |
+| Success | `200` boolean — “The reset email was sent.” |
+| 400 | Swagger: no email address was supplied. Sandbox also returns 400 `{"message":"User not found."}` when the address is not a portal user. Treat both as ambiguous (non-revealing confirmation), not as unavailable |
+| 401 | Access token missing, expired, or invalid |
+| Writes | None — emails the association’s password-reset template; no Individual/Membership create/update/delete |
 
 **Client contract** (stable for the plugin):
 
@@ -42,7 +52,9 @@ Body/query: visitor email (and association/tenant context as required by the ope
 |--------|-------|--------|
 | `request_password_reset_email( string $email )` | Sanitized email | `true` on accepted transport; `WP_Error` on config/auth/transport failure |
 
-**Enumeration**: Callers MUST NOT branch visitor messaging on “user not found” vs success when MemberSuite distinguishes them; map both to the same non-revealing confirmation when the HTTP layer completed without transport error. If the API returns hard failure only, still prefer non-revealing confirmation unless the failure is clearly configuration/auth (then unavailable).
+**Enumeration**: Callers MUST NOT branch visitor messaging on “user not found” vs success when MemberSuite distinguishes them; map both to the same non-revealing confirmation when the HTTP layer completed without transport error. If the API returns hard failure only, still prefer non-revealing confirmation unless the failure is clearly configuration/auth (then unavailable). Ambiguous HTTP 4xx other than 401/403 are treated as accepted transport.
+
+**Sandbox transport (2026-09-28):** An authenticated GET for `msebaa-phase5-nonmember@example.com` returned HTTP 400 `{"message":"User not found."}` in under a second. `request_password_reset_email()` maps that response to `true` (accepted transport). No portal scrape. A known portal user is the Swagger 200 boolean and would send MemberSuite’s reset email; that call was not repeated against a live member inbox during this lock.
 
 ## 3. Forbidden operations (this feature)
 
