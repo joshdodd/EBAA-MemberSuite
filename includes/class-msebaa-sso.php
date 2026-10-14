@@ -1,18 +1,20 @@
 <?php
+
 /**
  * Outside SSO orchestration.
  *
  * @package Msebaa
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
+if (! defined('ABSPATH')) {
 	exit;
 }
 
 /**
  * Handles SSO form submission, user provision/link, redirect context, and related hooks.
  */
-class Msebaa_Sso {
+class Msebaa_Sso
+{
 
 	/**
 	 * Nonce action for the SSO login form.
@@ -47,20 +49,21 @@ class Msebaa_Sso {
 	/**
 	 * Register form POST handlers and WordPress login filters.
 	 */
-	public static function register(): void {
-		add_action( 'admin_post_nopriv_' . self::ACTION, array( __CLASS__, 'handle_login' ) );
-		add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle_login' ) );
+	public static function register(): void
+	{
+		add_action('admin_post_nopriv_' . self::ACTION, array(__CLASS__, 'handle_login'));
+		add_action('admin_post_' . self::ACTION, array(__CLASS__, 'handle_login'));
 
 		/*
 		 * Must run after core's authenticate handlers at priority 20:
 		 * wp_authenticate_username_password() replaces an incoming WP_Error
 		 * with a successful WP_User, so an earlier block is discarded.
 		 */
-		add_filter( 'authenticate', array( __CLASS__, 'block_password_login_for_linked' ), 40, 3 );
-		add_filter( 'allow_password_reset', array( __CLASS__, 'disallow_password_reset_for_linked' ), 10, 2 );
-		add_filter( 'logout_redirect', array( __CLASS__, 'redirect_logout_to_portal' ), 10, 3 );
-		add_filter( 'allowed_redirect_hosts', array( __CLASS__, 'allow_portal_host' ) );
-		add_action( 'template_redirect', array( __CLASS__, 'redirect_logged_in_from_login_page' ) );
+		add_filter('authenticate', array(__CLASS__, 'block_password_login_for_linked'), 40, 3);
+		add_filter('allow_password_reset', array(__CLASS__, 'disallow_password_reset_for_linked'), 10, 2);
+		add_filter('logout_redirect', array(__CLASS__, 'redirect_logout_to_portal'), 10, 3);
+		add_filter('allowed_redirect_hosts', array(__CLASS__, 'allow_portal_host'));
+		add_action('template_redirect', array(__CLASS__, 'redirect_logged_in_from_login_page'));
 	}
 
 	/**
@@ -75,25 +78,26 @@ class Msebaa_Sso {
 	 * @param string                $password Submitted password (unused; never logged).
 	 * @return null|WP_User|WP_Error
 	 */
-	public static function block_password_login_for_linked( $user, $username, $password ) {
-		unset( $password );
+	public static function block_password_login_for_linked($user, $username, $password)
+	{
+		unset($password);
 
 		$wp_user = null;
-		if ( $user instanceof WP_User ) {
+		if ($user instanceof WP_User) {
 			$wp_user = $user;
-		} elseif ( is_string( $username ) && '' !== $username ) {
-			if ( is_email( $username ) ) {
-				$wp_user = get_user_by( 'email', $username );
+		} elseif (is_string($username) && '' !== $username) {
+			if (is_email($username)) {
+				$wp_user = get_user_by('email', $username);
 			} else {
-				$wp_user = get_user_by( 'login', $username );
+				$wp_user = get_user_by('login', $username);
 			}
 		}
 
-		if ( ! $wp_user instanceof WP_User ) {
+		if (! $wp_user instanceof WP_User) {
 			return $user;
 		}
 
-		if ( ! self::is_linked_user( $wp_user->ID ) ) {
+		if (! self::is_linked_user($wp_user->ID)) {
 			return $user;
 		}
 
@@ -103,8 +107,8 @@ class Msebaa_Sso {
 			'msebaa_sso_required',
 			sprintf(
 				/* translators: 1: opening link tag to the member sign-in page, 2: closing link tag */
-				__( 'This account signs in through MemberSuite. Please use the %1$smember sign-in page%2$s.', 'membersuite-ebaa' ),
-				'<a href="' . esc_url( $login_url ) . '">',
+				__('This account signs in through MemberSuite. Please use the %1$smember sign-in page%2$s.', 'membersuite-ebaa'),
+				'<a href="' . esc_url($login_url) . '">',
 				'</a>'
 			)
 		);
@@ -117,8 +121,9 @@ class Msebaa_Sso {
 	 * @param int           $user_id User ID.
 	 * @return bool|WP_Error
 	 */
-	public static function disallow_password_reset_for_linked( $allow, $user_id ) {
-		if ( self::is_linked_user( (int) $user_id ) ) {
+	public static function disallow_password_reset_for_linked($allow, $user_id)
+	{
+		if (self::is_linked_user((int) $user_id)) {
 			return false;
 		}
 
@@ -130,33 +135,35 @@ class Msebaa_Sso {
 	 *
 	 * @param int $user_id WordPress user ID.
 	 */
-	public static function is_linked_user( int $user_id ): bool {
-		if ( $user_id <= 0 ) {
+	public static function is_linked_user(int $user_id): bool
+	{
+		if ($user_id <= 0) {
 			return false;
 		}
 
-		return '1' === (string) get_user_meta( $user_id, Msebaa_User_Repository::META_LINKED, true );
+		return '1' === (string) get_user_meta($user_id, Msebaa_User_Repository::META_LINKED, true);
 	}
 
 	/**
 	 * Login page URL for SSO (configured page or home).
 	 */
-	public static function get_sso_login_url(): string {
-		if ( function_exists( 'msebaa_get_login_url' ) ) {
+	public static function get_sso_login_url(): string
+	{
+		if (function_exists('msebaa_get_login_url')) {
 			return msebaa_get_login_url();
 		}
 
 		$settings = msebaa_get_settings();
-		$page_id  = isset( $settings['login_page_id'] ) ? absint( $settings['login_page_id'] ) : 0;
+		$page_id  = isset($settings['login_page_id']) ? absint($settings['login_page_id']) : 0;
 
-		if ( $page_id > 0 ) {
-			$url = get_permalink( $page_id );
-			if ( is_string( $url ) && '' !== $url ) {
+		if ($page_id > 0) {
+			$url = get_permalink($page_id);
+			if (is_string($url) && '' !== $url) {
 				return $url;
 			}
 		}
 
-		return home_url( '/' );
+		return home_url('/');
 	}
 
 	/**
@@ -166,95 +173,98 @@ class Msebaa_Sso {
 	 * submits, and leaves the media-denied landing alone so a signed-in
 	 * non-member still reads why a file was refused.
 	 */
-	public static function redirect_logged_in_from_login_page(): void {
-		if ( ! is_user_logged_in() ) {
+	public static function redirect_logged_in_from_login_page(): void
+	{
+		if (! is_user_logged_in()) {
 			return;
 		}
 
-		$method = isset( $_SERVER['REQUEST_METHOD'] )
-			? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) )
+		$method = isset($_SERVER['REQUEST_METHOD'])
+			? strtoupper(sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'])))
 			: 'GET';
 
-		if ( 'GET' !== $method ) {
+		if ('GET' !== $method) {
 			return;
 		}
 
 		$settings = msebaa_get_settings();
-		$page_id  = isset( $settings['login_page_id'] ) ? absint( $settings['login_page_id'] ) : 0;
+		$page_id  = isset($settings['login_page_id']) ? absint($settings['login_page_id']) : 0;
 
-		if ( $page_id <= 0 || ! is_page( $page_id ) ) {
+		if ($page_id <= 0 || ! is_page($page_id)) {
 			return;
 		}
 
 		// A login page that is also the front page would redirect to itself.
-		if ( (int) get_option( 'page_on_front' ) === $page_id ) {
+		if ((int) get_option('page_on_front') === $page_id) {
 			return;
 		}
 
-		if ( class_exists( 'Msebaa_Media_Gate' ) && isset( $_GET[ Msebaa_Media_Gate::DENIED_ARG ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only query flag.
+		if (class_exists('Msebaa_Media_Gate') && isset($_GET[Msebaa_Media_Gate::DENIED_ARG])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only query flag.
 			return;
 		}
 
-		wp_safe_redirect( home_url( '/' ) );
+		wp_safe_redirect(home_url('/'));
 		exit;
 	}
 
 	/**
 	 * Handle SSO login form POST.
 	 */
-	public static function handle_login(): void {
+	public static function handle_login(): void
+	{
 		// Without a referer, fall back to the login page: the home page has no
 		// form to render the error on, so the message would be lost.
 		$referer  = wp_get_referer();
 		$fallback = $referer ? $referer : self::get_sso_login_url();
 
-		if ( ! isset( $_POST[ self::NONCE_FIELD ] )
-			|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ self::NONCE_FIELD ] ) ), self::NONCE_ACTION )
+		if (
+			! isset($_POST[self::NONCE_FIELD])
+			|| ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST[self::NONCE_FIELD])), self::NONCE_ACTION)
 		) {
 			self::fail_and_redirect(
 				$fallback,
-				__( 'Your sign-in request was invalid. Please try again.', 'membersuite-ebaa' )
+				__('Your sign-in request was invalid. Please try again.', 'membersuite-ebaa')
 			);
 		}
 
-		$email = isset( $_POST['msebaa_email'] )
-			? sanitize_email( wp_unslash( $_POST['msebaa_email'] ) )
+		$email = isset($_POST['msebaa_email'])
+			? sanitize_email(wp_unslash($_POST['msebaa_email']))
 			: '';
 
 		// Password used only for the outbound MemberSuite call; never stored.
-		$password = isset( $_POST['msebaa_password'] )
-			? (string) wp_unslash( $_POST['msebaa_password'] )
+		$password = isset($_POST['msebaa_password'])
+			? (string) wp_unslash($_POST['msebaa_password'])
 			: '';
 
 		$redirect_raw = '';
-		if ( isset( $_POST['msebaa_redirect'] ) ) {
-			$redirect_raw = (string) wp_unslash( $_POST['msebaa_redirect'] );
-		} elseif ( isset( $_GET['msebaa_redirect'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$redirect_raw = (string) wp_unslash( $_GET['msebaa_redirect'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if (isset($_POST['msebaa_redirect'])) {
+			$redirect_raw = (string) wp_unslash($_POST['msebaa_redirect']);
+		} elseif (isset($_GET['msebaa_redirect'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$redirect_raw = (string) wp_unslash($_GET['msebaa_redirect']); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		}
 
-		$return_url = self::absolute_return_url( self::validate_redirect_url( $redirect_raw ) );
+		$return_url = self::absolute_return_url(self::validate_redirect_url($redirect_raw));
 
-		if ( '' === $email || '' === $password ) {
+		if ('' === $email || '' === $password) {
 			self::fail_and_redirect(
 				$fallback,
-				__( 'Sign-in failed. Please try again or contact support.', 'membersuite-ebaa' )
+				__('Sign-in failed. Please try again or contact support.', 'membersuite-ebaa')
 			);
 		}
 
-		$location = self::authenticate( $email, $password, $return_url );
+		$location = self::authenticate($email, $password, $return_url);
 
 		// Clear password from local scope as soon as auth returns.
 		$password = '';
 
-		if ( is_wp_error( $location ) ) {
-			self::fail_and_redirect( $fallback, $location->get_error_message() );
+		if (is_wp_error($location)) {
+			self::fail_and_redirect($fallback, $location->get_error_message());
 		}
 
-		if ( ! is_string( $location ) || ! self::is_portal_sso_location( $location ) ) {
+		if (! is_string($location) || ! self::is_portal_sso_location($location)) {
 			self::fail_and_redirect(
 				$fallback,
-				__( 'Sign-in failed. Please try again or contact support.', 'membersuite-ebaa' )
+				__('Sign-in failed. Please try again or contact support.', 'membersuite-ebaa')
 			);
 		}
 
@@ -263,7 +273,7 @@ class Msebaa_Sso {
 		 * wp_safe_redirect() refuses this host; the URL is allowlisted above.
 		 */
 		// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
-		wp_redirect( $location );
+		wp_redirect($location);
 		exit;
 	}
 
@@ -279,68 +289,69 @@ class Msebaa_Sso {
 	 * @param string $return_url Local URL MemberSuite should open after the portal session starts.
 	 * @return string|WP_Error Portal jwt-sso URL, or an error.
 	 */
-	public static function authenticate( string $email, string $password, string $return_url = '' ) {
+	public static function authenticate(string $email, string $password, string $return_url = '')
+	{
 		$client = new Msebaa_Api_Client();
 
-		$login = $client->login_user( $email, $password );
-		if ( is_wp_error( $login ) ) {
-			return self::generic_auth_error( $login );
+		$login = $client->login_user($email, $password);
+		if (is_wp_error($login)) {
+			return self::generic_auth_error($login);
 		}
 
-		$whoami = $client->whoami( $login['id_token'] );
-		if ( is_wp_error( $whoami ) ) {
-			return self::generic_auth_error( $whoami );
+		$whoami = $client->whoami($login['id_token']);
+		if (is_wp_error($whoami)) {
+			return self::generic_auth_error($whoami);
 		}
 
 		// Fail closed: no WordPress session without a stable ownerId.
-		$owner_id = self::owner_id_from_whoami( $whoami );
-		if ( '' === $owner_id ) {
+		$owner_id = self::owner_id_from_whoami($whoami);
+		if ('' === $owner_id) {
 			return new WP_Error(
 				'msebaa_missing_owner',
-				__( 'Unable to complete sign-in.', 'membersuite-ebaa' )
+				__('Unable to complete sign-in.', 'membersuite-ebaa')
 			);
 		}
 
-		$membership = $client->individual_membership_profile( $login['id_token'], $owner_id );
-		if ( is_wp_error( $membership ) ) {
+		$membership = $client->individual_membership_profile($login['id_token'], $owner_id);
+		if (is_wp_error($membership)) {
 			// Organization and membership dates are profile data. Sign-in still completes
 			// and the last stored values stay in place.
 			$membership = null;
 		}
 
-		$user_id = self::provision_or_link( $whoami, $membership );
-		if ( is_wp_error( $user_id ) ) {
+		$user_id = self::provision_or_link($whoami, $membership);
+		if (is_wp_error($user_id)) {
 			return $user_id;
 		}
 
-		$user = get_userdata( $user_id );
-		if ( ! $user instanceof WP_User ) {
+		$user = get_userdata($user_id);
+		if (! $user instanceof WP_User) {
 			return new WP_Error(
 				'msebaa_user_missing',
-				__( 'Unable to complete sign-in.', 'membersuite-ebaa' )
+				__('Unable to complete sign-in.', 'membersuite-ebaa')
 			);
 		}
 
 		// true → msebaa_member; null/false/absent → subscriber; privileged roles untouched.
-		$receives = self::receives_benefits_from_whoami( $whoami );
-		msebaa_map_role_from_benefits( $receives, $user );
+		$receives = self::receives_benefits_from_whoami($whoami);
+		msebaa_map_role_from_benefits($receives, $user);
 
-		$synced_at = gmdate( 'Y-m-d H:i:s' );
-		Msebaa_Cache::invalidate( $user_id );
+		$synced_at = gmdate('Y-m-d H:i:s');
+		Msebaa_Cache::invalidate($user_id);
 		Msebaa_Cache::set(
 			$user_id,
 			array(
 				'receives_member_benefits' => $receives,
-				'profile'                  => self::cache_profile( $whoami, $owner_id, $membership ),
+				'profile'                  => self::cache_profile($whoami, $owner_id, $membership),
 				'synced_at'                => $synced_at,
 			)
 		);
 
-		wp_set_current_user( $user_id );
+		wp_set_current_user($user_id);
 
 		// Entitled members return to the original post, page, or download.
 		// Anyone else stays on that item's denial message.
-		$return_url = self::absolute_return_url( Msebaa_Content_Gate::redirect_after_sso( $return_url ) );
+		$return_url = self::absolute_return_url(Msebaa_Content_Gate::redirect_after_sso($return_url));
 
 		$jwt = $client->jwt_sso(
 			$login['id_token'],
@@ -348,21 +359,21 @@ class Msebaa_Sso {
 			$login['access_token'],
 			$return_url
 		);
-		if ( is_wp_error( $jwt ) ) {
-			return self::generic_auth_error( $jwt );
+		if (is_wp_error($jwt)) {
+			return self::generic_auth_error($jwt);
 		}
 
-		$location = isset( $jwt['location'] ) ? (string) $jwt['location'] : '';
-		if ( ! self::is_portal_sso_location( $location ) ) {
+		$location = isset($jwt['location']) ? (string) $jwt['location'] : '';
+		if (! self::is_portal_sso_location($location)) {
 			return new WP_Error(
 				'msebaa_jwt_sso_failed',
-				__( 'Sign-in failed. Please try again or contact support.', 'membersuite-ebaa' )
+				__('Sign-in failed. Please try again or contact support.', 'membersuite-ebaa')
 			);
 		}
 
 		// Cookie goes out on the redirect to MemberSuite, so the return to nextUrl is signed in.
-		wp_set_auth_cookie( $user_id, true );
-		self::remember_portal_host( $location );
+		wp_set_auth_cookie($user_id, true);
+		self::remember_portal_host($location);
 
 		return $location;
 	}
@@ -370,22 +381,25 @@ class Msebaa_Sso {
 	/**
 	 * After WordPress logout, send a linked member through the portal logout page.
 	 *
-	 * The portal session lives in that site's browser storage. Visiting
-	 * `/auth/jwt-sso?logOut=true` clears it. Unlinked users keep WordPress's redirect.
+	 * The portal session lives in that site's browser storage. `/auth/sso?logOut=true`
+	 * clears it and follows `nextUrl`. `/auth/jwt-sso` ignores `nextUrl` and stays
+	 * on the portal home when the portal skin has no SSO logout URL.
+	 * Unlinked users keep WordPress's redirect.
 	 *
 	 * @param string           $redirect_to           Requested post-logout URL.
 	 * @param string           $requested_redirect_to Unused original request.
 	 * @param WP_User|WP_Error $user                  User who just logged out.
 	 */
-	public static function redirect_logout_to_portal( $redirect_to, $requested_redirect_to, $user ): string {
-		unset( $requested_redirect_to );
+	public static function redirect_logout_to_portal($redirect_to, $requested_redirect_to, $user): string
+	{
+		unset($requested_redirect_to);
 
-		if ( ! $user instanceof WP_User || ! self::is_linked_user( $user->ID ) ) {
+		if (! $user instanceof WP_User || ! self::is_linked_user($user->ID)) {
 			return (string) $redirect_to;
 		}
 
-		$portal = self::portal_logout_url();
-		if ( '' === $portal ) {
+		$portal = self::portal_logout_url((string) $redirect_to);
+		if ('' === $portal) {
 			return (string) $redirect_to;
 		}
 
@@ -398,10 +412,11 @@ class Msebaa_Sso {
 	 * @param string[] $hosts Allowed hosts.
 	 * @return string[]
 	 */
-	public static function allow_portal_host( $hosts ): array {
-		$hosts = is_array( $hosts ) ? $hosts : array();
+	public static function allow_portal_host($hosts): array
+	{
+		$hosts = is_array($hosts) ? $hosts : array();
 		$host  = self::saved_portal_host();
-		if ( '' !== $host ) {
+		if ('' !== $host) {
 			$hosts[] = $host;
 		}
 
@@ -410,14 +425,32 @@ class Msebaa_Sso {
 
 	/**
 	 * Portal URL that clears the MemberSuite browser session.
+	 *
+	 * `/auth/sso` reads a plain `nextUrl` that starts with http:// or https://
+	 * and sends the browser there after logout. An off-site or empty return
+	 * falls back to the website home.
+	 *
+	 * @param string $return_url Local URL to open after the portal session is cleared.
 	 */
-	private static function portal_logout_url(): string {
+	private static function portal_logout_url(string $return_url = ''): string
+	{
 		$host = self::saved_portal_host();
-		if ( '' === $host ) {
+		if ('' === $host) {
 			return '';
 		}
 
-		return 'https://' . $host . '/auth/jwt-sso?logOut=true';
+		$return_url = (string) wp_validate_redirect($return_url, '');
+		if ('' === $return_url) {
+			$return_url = home_url('/');
+		}
+
+		return add_query_arg(
+			array(
+				'logOut'  => 'true',
+				'nextUrl' => $return_url,
+			),
+			'https://' . $host . '/auth/sso'
+		);
 	}
 
 	/**
@@ -425,26 +458,28 @@ class Msebaa_Sso {
 	 *
 	 * @param string $location Allowlisted jwt-sso URL.
 	 */
-	private static function remember_portal_host( string $location ): void {
-		$host = self::portal_host_from_location( $location );
-		if ( '' === $host || get_option( 'msebaa_portal_host' ) === $host ) {
+	private static function remember_portal_host(string $location): void
+	{
+		$host = self::portal_host_from_location($location);
+		if ('' === $host || get_option('msebaa_portal_host') === $host) {
 			return;
 		}
 
-		update_option( 'msebaa_portal_host', $host, false );
+		update_option('msebaa_portal_host', $host, false);
 	}
 
 	/**
 	 * Saved portal hostname, or empty when missing or not a MemberSuite portal host.
 	 */
-	private static function saved_portal_host(): string {
-		$host = get_option( 'msebaa_portal_host', '' );
-		if ( ! is_string( $host ) ) {
+	private static function saved_portal_host(): string
+	{
+		$host = get_option('msebaa_portal_host', '');
+		if (! is_string($host)) {
 			return '';
 		}
 
-		$host = strtolower( $host );
-		if ( ! self::is_membersuite_portal_host( $host ) ) {
+		$host = strtolower($host);
+		if (! self::is_membersuite_portal_host($host)) {
 			return '';
 		}
 
@@ -456,15 +491,16 @@ class Msebaa_Sso {
 	 *
 	 * @param string $location Candidate URL.
 	 */
-	private static function portal_host_from_location( string $location ): string {
-		if ( ! self::is_portal_sso_location( $location ) ) {
+	private static function portal_host_from_location(string $location): string
+	{
+		if (! self::is_portal_sso_location($location)) {
 			return '';
 		}
 
-		$parts = wp_parse_url( $location );
-		$host  = strtolower( (string) ( $parts['host'] ?? '' ) );
+		$parts = wp_parse_url($location);
+		$host  = strtolower((string) ($parts['host'] ?? ''));
 
-		return self::is_membersuite_portal_host( $host ) ? $host : '';
+		return self::is_membersuite_portal_host($host) ? $host : '';
 	}
 
 	/**
@@ -472,8 +508,9 @@ class Msebaa_Sso {
 	 *
 	 * @param string $host Hostname without a scheme.
 	 */
-	private static function is_membersuite_portal_host( string $host ): bool {
-		return '' !== $host && str_ends_with( $host, '.users.membersuite.com' );
+	private static function is_membersuite_portal_host(string $host): bool
+	{
+		return '' !== $host && str_ends_with($host, '.users.membersuite.com');
 	}
 
 	/**
@@ -484,19 +521,20 @@ class Msebaa_Sso {
 	 *
 	 * @param string $url Candidate local URL or path.
 	 */
-	private static function absolute_return_url( string $url ): string {
-		$url = (string) wp_validate_redirect( $url, '' );
-		if ( '' === $url ) {
+	private static function absolute_return_url(string $url): string
+	{
+		$url = (string) wp_validate_redirect($url, '');
+		if ('' === $url) {
 			$url = self::get_sso_login_url();
 		}
 
-		if ( str_starts_with( $url, '/' ) ) {
-			$url = home_url( $url );
+		if (str_starts_with($url, '/')) {
+			$url = home_url($url);
 		}
 
-		$url = (string) wp_validate_redirect( $url, home_url( '/' ) );
-		if ( ! str_starts_with( $url, 'https://' ) && ! str_starts_with( $url, 'http://' ) ) {
-			$url = home_url( '/' );
+		$url = (string) wp_validate_redirect($url, home_url('/'));
+		if (! str_starts_with($url, 'https://') && ! str_starts_with($url, 'http://')) {
+			$url = home_url('/');
 		}
 
 		return $url;
@@ -507,22 +545,23 @@ class Msebaa_Sso {
 	 *
 	 * @param string $url Candidate Location from JWTSSO.
 	 */
-	private static function is_portal_sso_location( string $url ): bool {
-		$parts = wp_parse_url( $url );
-		if ( ! is_array( $parts ) ) {
+	private static function is_portal_sso_location(string $url): bool
+	{
+		$parts = wp_parse_url($url);
+		if (! is_array($parts)) {
 			return false;
 		}
 
-		if ( 'https' !== ( $parts['scheme'] ?? '' ) ) {
+		if ('https' !== ($parts['scheme'] ?? '')) {
 			return false;
 		}
 
-		$host = strtolower( (string) ( $parts['host'] ?? '' ) );
-		if ( ! self::is_membersuite_portal_host( $host ) ) {
+		$host = strtolower((string) ($parts['host'] ?? ''));
+		if (! self::is_membersuite_portal_host($host)) {
 			return false;
 		}
 
-		return '/auth/jwt-sso' === ( $parts['path'] ?? '' );
+		return '/auth/jwt-sso' === ($parts['path'] ?? '');
 	}
 
 	/**
@@ -530,12 +569,13 @@ class Msebaa_Sso {
 	 *
 	 * @param array<string, mixed> $whoami whoami payload.
 	 */
-	public static function owner_id_from_whoami( array $whoami ): string {
-		if ( empty( $whoami['ownerId'] ) ) {
+	public static function owner_id_from_whoami(array $whoami): string
+	{
+		if (empty($whoami['ownerId'])) {
 			return '';
 		}
 
-		return sanitize_text_field( (string) $whoami['ownerId'] );
+		return sanitize_text_field((string) $whoami['ownerId']);
 	}
 
 	/**
@@ -545,14 +585,15 @@ class Msebaa_Sso {
 	 *
 	 * @param array<string, mixed> $whoami whoami payload.
 	 */
-	public static function receives_benefits_from_whoami( array $whoami ): bool {
-		if ( ! array_key_exists( 'receivesMemberBenefits', $whoami ) ) {
+	public static function receives_benefits_from_whoami(array $whoami): bool
+	{
+		if (! array_key_exists('receivesMemberBenefits', $whoami)) {
 			return false;
 		}
 
 		$value = $whoami['receivesMemberBenefits'];
 
-		if ( true === $value || 1 === $value || '1' === $value ) {
+		if (true === $value || 1 === $value || '1' === $value) {
 			return true;
 		}
 
@@ -567,21 +608,22 @@ class Msebaa_Sso {
 	 * @param array<string, mixed>|null $membership CRM fields, or null when that read failed.
 	 * @return array<string, string>
 	 */
-	private static function cache_profile( array $whoami, string $owner_id, ?array $membership ): array {
+	private static function cache_profile(array $whoami, string $owner_id, ?array $membership): array
+	{
 		$profile = array(
-			'first_name' => isset( $whoami['firstName'] ) ? (string) $whoami['firstName'] : '',
-			'last_name'  => isset( $whoami['lastName'] ) ? (string) $whoami['lastName'] : '',
-			'email'      => isset( $whoami['email'] ) ? (string) $whoami['email'] : '',
+			'first_name' => isset($whoami['firstName']) ? (string) $whoami['firstName'] : '',
+			'last_name'  => isset($whoami['lastName']) ? (string) $whoami['lastName'] : '',
+			'email'      => isset($whoami['email']) ? (string) $whoami['email'] : '',
 			'owner_id'   => $owner_id,
 		);
 
-		if ( ! is_array( $membership ) ) {
+		if (! is_array($membership)) {
 			return $profile;
 		}
 
-		$profile['primary_organization']  = isset( $membership['primary_organization'] ) ? (string) $membership['primary_organization'] : '';
-		$profile['membership_type']       = isset( $membership['membership_type'] ) ? (string) $membership['membership_type'] : '';
-		$profile['membership_expiration'] = isset( $membership['membership_expiration'] ) ? (string) $membership['membership_expiration'] : '';
+		$profile['primary_organization']  = isset($membership['primary_organization']) ? (string) $membership['primary_organization'] : '';
+		$profile['membership_type']       = isset($membership['membership_type']) ? (string) $membership['membership_type'] : '';
+		$profile['membership_expiration'] = isset($membership['membership_expiration']) ? (string) $membership['membership_expiration'] : '';
 
 		return $profile;
 	}
@@ -593,103 +635,104 @@ class Msebaa_Sso {
 	 * @param array<string, mixed>|null $membership CRM fields, or null to leave org/type/expiration unchanged.
 	 * @return int|WP_Error User ID or error.
 	 */
-	public static function provision_or_link( array $whoami, ?array $membership = null ) {
-		$owner_id = self::owner_id_from_whoami( $whoami );
-		if ( '' === $owner_id ) {
+	public static function provision_or_link(array $whoami, ?array $membership = null)
+	{
+		$owner_id = self::owner_id_from_whoami($whoami);
+		if ('' === $owner_id) {
 			return new WP_Error(
 				'msebaa_missing_owner',
-				__( 'Unable to complete sign-in.', 'membersuite-ebaa' )
+				__('Unable to complete sign-in.', 'membersuite-ebaa')
 			);
 		}
 
-		$email = isset( $whoami['email'] ) ? sanitize_email( (string) $whoami['email'] ) : '';
-		$first = isset( $whoami['firstName'] ) ? sanitize_text_field( (string) $whoami['firstName'] ) : '';
-		$last  = isset( $whoami['lastName'] ) ? sanitize_text_field( (string) $whoami['lastName'] ) : '';
+		$email = isset($whoami['email']) ? sanitize_email((string) $whoami['email']) : '';
+		$first = isset($whoami['firstName']) ? sanitize_text_field((string) $whoami['firstName']) : '';
+		$last  = isset($whoami['lastName']) ? sanitize_text_field((string) $whoami['lastName']) : '';
 
-		$existing_id = Msebaa_User_Repository::find_by_owner_id( $owner_id );
+		$existing_id = Msebaa_User_Repository::find_by_owner_id($owner_id);
 
-		if ( null === $existing_id ) {
-			if ( '' === $email || ! is_email( $email ) ) {
+		if (null === $existing_id) {
+			if ('' === $email || ! is_email($email)) {
 				return new WP_Error(
 					'msebaa_invalid_email',
-					__( 'Unable to complete sign-in.', 'membersuite-ebaa' )
+					__('Unable to complete sign-in.', 'membersuite-ebaa')
 				);
 			}
 
-			$email_user_id = email_exists( $email );
-			if ( $email_user_id ) {
+			$email_user_id = email_exists($email);
+			if ($email_user_id) {
 				// Never link by email alone when ownerId does not match.
 				return new WP_Error(
 					'msebaa_email_conflict',
-					__( 'Unable to complete sign-in.', 'membersuite-ebaa' )
+					__('Unable to complete sign-in.', 'membersuite-ebaa')
 				);
 			}
 
-			$login   = self::unique_username_from_email( $email );
+			$login   = self::unique_username_from_email($email);
 			$user_id = wp_insert_user(
 				array(
 					'user_login'   => $login,
 					'user_email'   => $email,
-					'user_pass'    => wp_generate_password( 32, true, true ),
+					'user_pass'    => wp_generate_password(32, true, true),
 					'first_name'   => $first,
 					'last_name'    => $last,
-					'display_name' => trim( $first . ' ' . $last ),
+					'display_name' => trim($first . ' ' . $last),
 					'role'         => 'subscriber',
 				)
 			);
 
-			if ( is_wp_error( $user_id ) ) {
+			if (is_wp_error($user_id)) {
 				return new WP_Error(
 					'msebaa_provision_failed',
-					__( 'Unable to complete sign-in.', 'membersuite-ebaa' )
+					__('Unable to complete sign-in.', 'membersuite-ebaa')
 				);
 			}
 		} else {
 			$user_id = $existing_id;
 
-			$update = array( 'ID' => $user_id );
-			if ( '' !== $first ) {
+			$update = array('ID' => $user_id);
+			if ('' !== $first) {
 				$update['first_name'] = $first;
 			}
-			if ( '' !== $last ) {
+			if ('' !== $last) {
 				$update['last_name'] = $last;
 			}
-			if ( '' !== $email && is_email( $email ) ) {
-				$other = email_exists( $email );
-				if ( ! $other || (int) $other === $user_id ) {
+			if ('' !== $email && is_email($email)) {
+				$other = email_exists($email);
+				if (! $other || (int) $other === $user_id) {
 					$update['user_email'] = $email;
 				}
 			}
-			if ( count( $update ) > 1 ) {
-				wp_update_user( $update );
+			if (count($update) > 1) {
+				wp_update_user($update);
 			}
 		}
 
-		$receives = self::receives_benefits_from_whoami( $whoami );
+		$receives = self::receives_benefits_from_whoami($whoami);
 
 		$link = array(
 			'owner_id'                 => $owner_id,
-			'user_id'                  => isset( $whoami['userId'] ) ? (string) $whoami['userId'] : '',
-			'membership_id'            => isset( $whoami['membershipId'] ) ? (string) $whoami['membershipId'] : '',
+			'user_id'                  => isset($whoami['userId']) ? (string) $whoami['userId'] : '',
+			'membership_id'            => isset($whoami['membershipId']) ? (string) $whoami['membershipId'] : '',
 			'receives_member_benefits' => $receives,
 			'first_name'               => $first,
 			'last_name'                => $last,
 			'email'                    => $email,
-			'last_synced'              => gmdate( 'Y-m-d H:i:s' ),
+			'last_synced'              => gmdate('Y-m-d H:i:s'),
 		);
 
-		if ( is_array( $membership ) ) {
-			$link['primary_organization']  = isset( $membership['primary_organization'] ) ? (string) $membership['primary_organization'] : '';
-			$link['membership_type']       = isset( $membership['membership_type'] ) ? (string) $membership['membership_type'] : '';
-			$link['membership_expiration'] = isset( $membership['membership_expiration'] ) ? (string) $membership['membership_expiration'] : '';
+		if (is_array($membership)) {
+			$link['primary_organization']  = isset($membership['primary_organization']) ? (string) $membership['primary_organization'] : '';
+			$link['membership_type']       = isset($membership['membership_type']) ? (string) $membership['membership_type'] : '';
+			$link['membership_expiration'] = isset($membership['membership_expiration']) ? (string) $membership['membership_expiration'] : '';
 		}
 
-		$saved = Msebaa_User_Repository::save_link( (int) $user_id, $link );
+		$saved = Msebaa_User_Repository::save_link((int) $user_id, $link);
 
-		if ( is_wp_error( $saved ) ) {
+		if (is_wp_error($saved)) {
 			return new WP_Error(
 				'msebaa_link_failed',
-				__( 'Unable to complete sign-in.', 'membersuite-ebaa' )
+				__('Unable to complete sign-in.', 'membersuite-ebaa')
 			);
 		}
 
@@ -701,19 +744,20 @@ class Msebaa_Sso {
 	 *
 	 * @param string $url Candidate redirect URL from query/POST.
 	 */
-	public static function store_redirect( string $url ): string {
-		$url = esc_url_raw( $url );
-		if ( '' === $url ) {
+	public static function store_redirect(string $url): string
+	{
+		$url = esc_url_raw($url);
+		if ('' === $url) {
 			return '';
 		}
 
-		$validated = wp_validate_redirect( $url, '' );
-		if ( '' === $validated ) {
+		$validated = wp_validate_redirect($url, '');
+		if ('' === $validated) {
 			return '';
 		}
 
-		$token = wp_generate_password( 32, false, false );
-		set_transient( self::REDIRECT_PREFIX . $token, $validated, self::REDIRECT_TTL );
+		$token = wp_generate_password(32, false, false);
+		set_transient(self::REDIRECT_PREFIX . $token, $validated, self::REDIRECT_TTL);
 
 		return $token;
 	}
@@ -723,20 +767,21 @@ class Msebaa_Sso {
 	 *
 	 * @param string $token Opaque token from store_redirect().
 	 */
-	public static function consume_redirect( string $token ): string {
-		if ( '' === $token ) {
+	public static function consume_redirect(string $token): string
+	{
+		if ('' === $token) {
 			return '';
 		}
 
 		$key = self::REDIRECT_PREFIX . $token;
-		$url = get_transient( $key );
-		delete_transient( $key );
+		$url = get_transient($key);
+		delete_transient($key);
 
-		if ( ! is_string( $url ) || '' === $url ) {
+		if (! is_string($url) || '' === $url) {
 			return '';
 		}
 
-		return (string) wp_validate_redirect( $url, '' );
+		return (string) wp_validate_redirect($url, '');
 	}
 
 	/**
@@ -744,13 +789,14 @@ class Msebaa_Sso {
 	 *
 	 * @param string $url Candidate URL.
 	 */
-	public static function validate_redirect_url( string $url ): string {
-		$url = esc_url_raw( $url );
-		if ( '' === $url ) {
+	public static function validate_redirect_url(string $url): string
+	{
+		$url = esc_url_raw($url);
+		if ('' === $url) {
 			return '';
 		}
 
-		return (string) wp_validate_redirect( $url, '' );
+		return (string) wp_validate_redirect($url, '');
 	}
 
 	/**
@@ -759,14 +805,15 @@ class Msebaa_Sso {
 	 * @param string $url     Fallback return URL.
 	 * @param string $message Translatable generic message (no API dumps).
 	 */
-	private static function fail_and_redirect( string $url, string $message ): void {
-		$token = wp_generate_password( 12, false, false );
-		set_transient( self::ERROR_PREFIX . $token, $message, 5 * MINUTE_IN_SECONDS );
+	private static function fail_and_redirect(string $url, string $message): void
+	{
+		$token = wp_generate_password(12, false, false);
+		set_transient(self::ERROR_PREFIX . $token, $message, 5 * MINUTE_IN_SECONDS);
 
-		$url = wp_validate_redirect( $url, home_url( '/' ) );
-		$url = add_query_arg( 'msebaa_sso_error', rawurlencode( $token ), $url );
+		$url = wp_validate_redirect($url, home_url('/'));
+		$url = add_query_arg('msebaa_sso_error', rawurlencode($token), $url);
 
-		wp_safe_redirect( $url );
+		wp_safe_redirect($url);
 		exit;
 	}
 
@@ -775,17 +822,18 @@ class Msebaa_Sso {
 	 *
 	 * @param string $token Error token from query arg.
 	 */
-	public static function consume_error( string $token ): string {
-		$token = sanitize_text_field( $token );
-		if ( '' === $token ) {
+	public static function consume_error(string $token): string
+	{
+		$token = sanitize_text_field($token);
+		if ('' === $token) {
 			return '';
 		}
 
 		$key     = self::ERROR_PREFIX . $token;
-		$message = get_transient( $key );
-		delete_transient( $key );
+		$message = get_transient($key);
+		delete_transient($key);
 
-		return is_string( $message ) ? $message : '';
+		return is_string($message) ? $message : '';
 	}
 
 	/**
@@ -793,17 +841,18 @@ class Msebaa_Sso {
 	 *
 	 * @param WP_Error $error Upstream error.
 	 */
-	private static function generic_auth_error( WP_Error $error ): WP_Error {
-		if ( 'msebaa_http_error' === $error->get_error_code() ) {
+	private static function generic_auth_error(WP_Error $error): WP_Error
+	{
+		if ('msebaa_http_error' === $error->get_error_code()) {
 			return new WP_Error(
 				'msebaa_unavailable',
-				__( 'The membership service is temporarily unavailable. Please try again later.', 'membersuite-ebaa' )
+				__('The membership service is temporarily unavailable. Please try again later.', 'membersuite-ebaa')
 			);
 		}
 
 		return new WP_Error(
 			'msebaa_auth_failed',
-			__( 'Sign-in failed. Please try again or contact support.', 'membersuite-ebaa' )
+			__('Sign-in failed. Please try again or contact support.', 'membersuite-ebaa')
 		);
 	}
 
@@ -812,16 +861,17 @@ class Msebaa_Sso {
 	 *
 	 * @param string $email Sanitized email.
 	 */
-	private static function unique_username_from_email( string $email ): string {
-		$local = strstr( $email, '@', true );
-		$base  = sanitize_user( (string) $local, true );
-		if ( '' === $base ) {
+	private static function unique_username_from_email(string $email): string
+	{
+		$local = strstr($email, '@', true);
+		$base  = sanitize_user((string) $local, true);
+		if ('' === $base) {
 			$base = 'msebaa_user';
 		}
 
 		$login  = $base;
 		$suffix = 1;
-		while ( username_exists( $login ) ) {
+		while (username_exists($login)) {
 			$login = $base . $suffix;
 			++$suffix;
 		}

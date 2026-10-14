@@ -94,11 +94,13 @@ A member who signs in from that prompt is sent back to the download. The media l
 
 ## Theme helpers
 
-Themes read membership through these seven functions. They are the supported API. Call them after `init`, in any template. They do not print output, stop the request, or contact MemberSuite. When membership is unknown they return the default listed below.
+Themes read membership through these helper unctions. They are the supported API. Call them after `init`, in any template. They do not print output, stop the request, or contact MemberSuite. When membership is unknown they return the default listed below.
 
 ### `msebaa_is_user_logged_in(): bool`
 
 True when any WordPress session is active, whether or not it is linked to MemberSuite. Default: `false`.
+
+After `init`, this returns the same value as WordPress `is_user_logged_in()`. Use the plugin helper when the template might run before `init`, or when the rest of the template already uses these helpers. Before `init` it returns `false`, while `is_user_logged_in()` can already see the auth cookie. After `init`, `is_user_logged_in()` is enough for a plain session check. A signed-in administrator or subscriber is true here as well; member benefits are `msebaa_is_member()`.
 
 ```php
 if ( msebaa_is_user_logged_in() ) {
@@ -118,29 +120,29 @@ if ( msebaa_is_member() ) {
 
 ### `msebaa_receives_member_benefits(): bool`
 
-The cached benefits flag for the current user. Default: `false` when signed out or when the flag is missing. This is the same check the content gate uses.
+The ReceivesMemberBenefits flag for the current user. Default: `false` when signed out or when the flag is missing. This is the same check the content gate uses.
 
 ```php
-$show_dues_notice = msebaa_is_user_logged_in() && ! msebaa_receives_member_benefits();
+$show_membership_notice = msebaa_is_user_logged_in() && ! msebaa_receives_member_benefits();
 ```
 
 ### `msebaa_get_current_member(): ?array`
 
 The linked member snapshot, or `null` when nobody linked is signed in.
 
-| Key                        | Type                                 |
-| -------------------------- | ------------------------------------ |
-| `owner_id`                 | `string` — MemberSuite Individual ID |
-| `email`                    | `string`                             |
-| `first_name`               | `string`                             |
-| `last_name`                | `string`                             |
-| `receives_member_benefits` | `bool`                               |
-| `membership_id`            | `string` — may be empty              |
-| `primary_organization`     | `string` — organization name, or empty |
+| Key                        | Type                                      |
+| -------------------------- | ----------------------------------------- |
+| `owner_id`                 | `string` — MemberSuite Individual ID      |
+| `email`                    | `string`                                  |
+| `first_name`               | `string`                                  |
+| `last_name`                | `string`                                  |
+| `receives_member_benefits` | `bool`                                    |
+| `membership_id`            | `string` — may be empty                   |
+| `primary_organization`     | `string` — organization name, or empty    |
 | `membership_type`          | `string` — membership type name, or empty |
-| `membership_expiration`    | `string` — `Y-m-d`, or empty         |
-| `wp_user_id`               | `int`                                |
-| `last_synced`              | `string` — GMT datetime, or empty    |
+| `membership_expiration`    | `string` — `Y-m-d`, or empty              |
+| `wp_user_id`               | `int`                                     |
+| `last_synced`              | `string` — GMT datetime, or empty         |
 
 ```php
 $member = msebaa_get_current_member();
@@ -174,7 +176,7 @@ WordPress logout URL. An optional local `$redirect` is where the visitor lands a
 $logout_url = msebaa_get_logout_url( home_url( '/' ) );
 ```
 
-### Putting the helpers together
+### Sample login header greeting with helpers
 
 ```php
 <?php
@@ -220,16 +222,7 @@ The plugin ships a small layout stylesheet and leaves colors and type to the the
 
 ## Sign-in behavior
 
-- A linked member cannot sign in with a WordPress password at `wp-login.php`. They are told to use the member sign-in page. Accounts that are not linked to MemberSuite, including administrators, still use WordPress login.
+- A linked member cannot sign in with a WordPress password at `wp-login.php`.
 - On first successful sign-in the plugin creates or reuses a WordPress user and stores the MemberSuite profile. A person who receives member benefits is given the **Member** role (the same capabilities as Subscriber). Privileged accounts, including administrators, are not switched to that role.
 - A failed sign-in stays on the form with a generic message. MemberSuite error text is not shown.
 - If MemberSuite cannot be reached, sign-in fails and the form says the membership service is temporarily unavailable. People who are already signed in keep browsing. Helpers and members-only checks use the last synced snapshot and do not call MemberSuite while the page renders.
-
-## Changelog
-
-### 0.1.0
-
-- Outside SSO sign-in shortcode with user provisioning and benefits-based role mapping.
-- Theme helper functions for membership state.
-- Members Only gating for posts, pages, and media.
-- Password-reset shortcode and inline reset panel on the sign-in form.
