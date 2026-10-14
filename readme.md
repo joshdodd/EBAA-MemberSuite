@@ -1,15 +1,6 @@
 # MemberSuite EBAA
 
-Guide for the people who install this plugin, publish members-only content, and build the theme around it.
-
 Visitors sign in with their MemberSuite email and password. The plugin links that person to a WordPress user, and content marked **Members Only** is limited to people who currently receive member benefits. Password recovery sends MemberSuite’s own reset email.
-
-| | |
-| --- | --- |
-| **Requires WordPress** | 6.0 or newer |
-| **Tested up to** | 6.7 |
-| **Requires PHP** | 8.1 |
-| **License** | [GPL-2.0-or-later](https://www.gnu.org/licenses/gpl-2.0.html) |
 
 ## Setup
 
@@ -18,22 +9,22 @@ An administrator with the `manage_options` capability completes this once.
 1. Activate the plugin.
 2. Create a published page for sign-in and place this shortcode in the content:
 
-   ```
-   [msebaa_sso_login]
-   ```
+```
+ [msebaa_sso_login]
+```
 
-3. Open **Settings → MemberSuite EBAA** and save the connection:
+1. Open **Settings → MemberSuite EBAA** and save the connection:
 
-   | Field | What to enter |
-   | --- | --- |
-   | **Association ID** | The association GUID from MemberSuite (typically 36 characters with hyphens). Required for password-reset emails. |
-   | **Association Key** | The numeric partition key used in MemberSuite REST URLs. This is not the association GUID. |
-   | **API user email** | Email of a dedicated MemberSuite API user. This is not a member’s sign-in. |
-   | **API user password** | Password for that API user. Leave the field blank on later saves to keep the stored password. The form never shows the saved value. |
-   | **Login page** | The published page that contains `[msebaa_sso_login]`. Theme login links and members-only “Sign in” links use this page. |
-   | **HTTP timeout** | Seconds to wait on MemberSuite requests. Allowed range is 5–30. The default is 15. |
+| Field                 | What to enter                                                                                                                       |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Association ID**    | The association GUID from MemberSuite (typically 36 characters with hyphens). Required for password-reset emails.                   |
+| **Association Key**   | The numeric partition key used in MemberSuite REST URLs. This is not the association GUID.                                          |
+| **API user email**    | Email of a dedicated MemberSuite API user. This is not a member’s sign-in.                                                          |
+| **API user password** | Password for that API user. Leave the field blank on later saves to keep the stored password. The form never shows the saved value. |
+| **Login page**        | The published page that contains `[msebaa_sso_login]`. Theme login links and members-only “Sign in” links use this page.            |
+| **HTTP timeout**      | Seconds to wait on MemberSuite requests. Allowed range is 5–30. The default is 15.                                                  |
 
-4. Optionally create a second page with `[msebaa_password_reset]` if you want a standalone reset form. The sign-in page already includes a **Forgot password?** panel, so a second page is only needed when the reset form should live on its own.
+1. Optionally create a second page with `[msebaa_password_reset]` if you want a standalone reset form. The sign-in page already includes a **Forgot password?** panel, so a second page is only needed when the reset form should live on its own.
 
 Sign-in needs the Association Key. Password reset also needs the Association ID, API user email, and API user password. Until those four values are saved, the reset form tells the visitor that reset is temporarily unavailable.
 
@@ -45,8 +36,8 @@ Anyone who can publish shortcodes can place these in post or page content.
 
 The member sign-in form: email, password, and a **Sign in** button. Styles load only on pages that render this shortcode.
 
-| Attribute | Description |
-| --- | --- |
+| Attribute  | Description                                                                            |
+| ---------- | -------------------------------------------------------------------------------------- |
 | `redirect` | Optional local URL to open after a successful sign-in. Off-site addresses are ignored. |
 
 ```
@@ -74,40 +65,36 @@ The form stays on the same page and shows one of these messages:
 
 ## Members-only content
 
-Editors mark individual posts, pages, and media files. There is no site-wide “lock everything” switch.
+Editors mark individual posts, pages, and media files.
 
 ### Posts and pages
 
-In the editor sidebar, open the **Members Only** box and check **Members Only**. Site administrators can still open the item. Save the post or page to store the choice.
+In the editor sidebar, open the **Members Only** box and check **Members Only**. Site administrators can still open the item.
 
-| Who is viewing the single post or page | What they see |
-| --- | --- |
-| Signed-in member currently receiving benefits | The full content |
-| A user who can `manage_options` | The full content |
-| Everyone else, including a signed-in person whose benefits are unknown | The body is replaced with “This content is for logged-in members only.” and a **Sign in** link back to this item |
+| Who is viewing the single post or page                                       | What they see                                                                                                    |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Signed-in member currently receiving benefits                                | The full content                                                                                                 |
+| A user who can `manage_options` (admins/editors)                             | The full content                                                                                                 |
+| Everyone else, including a signed-in person whose benefits are false/unknown | The body is replaced with “This content is for logged-in members only.” and a **Sign in** link back to this item |
 
-Archive, search, and feed listings are left as the theme renders them. Titles and excerpts can appear there. The restriction applies when the single post or page is opened.
+Archive, search, and feed listings are left as the theme renders them. Titles and excerpts of members only posts can appear there. The restriction applies when the single post or page is opened.
 
-After a successful sign-in, a member returns to that post or page. A person who still does not receive benefits stays on the same denial message.
-
-Templates should print the body with `the_content()`. The plugin replaces restricted content on that filter. Printing `$post->post_content` directly skips the gate.
+Templates should print the body with `the_content()`. The plugin replaces restricted content on that filter.
 
 ### Media
 
-In the media modal, or on the attachment edit screen, check **Members Only**. The public file URL is rewritten to a download address on the site (`/?msebaa_download={id}`) instead of the raw uploads path.
+In the media modal, or on the media attachment edit screen, check **Members Only**. The public file URL is rewritten to a download address on the site (`/?msebaa_download={id}`) instead of the raw uploads path.
 
-| Who requests the file | What happens |
-| --- | --- |
-| Signed-in member currently receiving benefits, or a user who can `manage_options` | The file is served |
-| Everyone else | They are sent to the login page with “This file is not accessible to non-members.” |
+| Who requests the file                                                             | What happens                                                                       |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Signed-in member currently receiving benefits, or a user who can `manage_options` | The file is served                                                                 |
+| Everyone else                                                                     | They are sent to the login page with “This file is not accessible to non-members.” |
 
 A member who signs in from that prompt is sent back to the download. The media library in wp-admin still shows the real file URL so editors can manage the library.
 
 ## Theme helpers
 
 Themes read membership through these seven functions. They are the supported API. Call them after `init`, in any template. They do not print output, stop the request, or contact MemberSuite. When membership is unknown they return the default listed below.
-
-Do not decide membership by checking the **Member** role. Administrators are not treated as members unless their own snapshot says they receive benefits. Use `current_user_can( 'manage_options' )` when a template needs an operational override.
 
 ### `msebaa_is_user_logged_in(): bool`
 
@@ -141,16 +128,16 @@ $show_dues_notice = msebaa_is_user_logged_in() && ! msebaa_receives_member_benef
 
 The linked member snapshot, or `null` when nobody linked is signed in.
 
-| Key | Type |
-| --- | --- |
-| `owner_id` | `string` — MemberSuite Individual ID |
-| `email` | `string` |
-| `first_name` | `string` |
-| `last_name` | `string` |
-| `receives_member_benefits` | `bool` |
-| `membership_id` | `string` — may be empty |
-| `wp_user_id` | `int` |
-| `last_synced` | `string` — GMT datetime, or empty |
+| Key                        | Type                                 |
+| -------------------------- | ------------------------------------ |
+| `owner_id`                 | `string` — MemberSuite Individual ID |
+| `email`                    | `string`                             |
+| `first_name`               | `string`                             |
+| `last_name`                | `string`                             |
+| `receives_member_benefits` | `bool`                               |
+| `membership_id`            | `string` — may be empty              |
+| `wp_user_id`               | `int`                                |
+| `last_synced`              | `string` — GMT datetime, or empty    |
 
 ```php
 $member = msebaa_get_current_member();
@@ -218,15 +205,15 @@ if ( msebaa_is_member() ) {
 
 The plugin ships a small layout stylesheet and leaves colors and type to the theme. Target these classes:
 
-| Class | Element |
-| --- | --- |
-| `.msebaa-sso-form` | Sign-in wrapper |
-| `.msebaa-sso-form--signed-in` | Wrapper when a session already exists |
-| `.msebaa-sso-form__error` | Sign-in error |
-| `.msebaa-sso-form__forgot` | **Forgot password?** disclosure |
-| `.msebaa-password-reset` | Reset form |
-| `.msebaa-members-only` | Denial message on a locked post or page |
-| `.msebaa-media-denied` | Denial message after a locked file request |
+| Class                         | Element                                    |
+| ----------------------------- | ------------------------------------------ |
+| `.msebaa-sso-form`            | Sign-in wrapper                            |
+| `.msebaa-sso-form--signed-in` | Wrapper when a session already exists      |
+| `.msebaa-sso-form__error`     | Sign-in error                              |
+| `.msebaa-sso-form__forgot`    | **Forgot password?** disclosure            |
+| `.msebaa-password-reset`      | Reset form                                 |
+| `.msebaa-members-only`        | Denial message on a locked post or page    |
+| `.msebaa-media-denied`        | Denial message after a locked file request |
 
 ## Sign-in behavior
 

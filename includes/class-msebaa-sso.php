@@ -60,6 +60,7 @@ class Msebaa_Sso {
 		add_filter( 'allow_password_reset', array( __CLASS__, 'disallow_password_reset_for_linked' ), 10, 2 );
 		add_filter( 'logout_redirect', array( __CLASS__, 'redirect_logout_to_portal' ), 10, 3 );
 		add_filter( 'allowed_redirect_hosts', array( __CLASS__, 'allow_portal_host' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'redirect_logged_in_from_login_page' ) );
 	}
 
 	/**
@@ -156,6 +157,46 @@ class Msebaa_Sso {
 		}
 
 		return home_url( '/' );
+	}
+
+	/**
+	 * Send signed-in visitors from the configured login page to the home page.
+	 *
+	 * Leaves POSTs alone so the in-place password-reset form on that page still
+	 * submits, and leaves the media-denied landing alone so a signed-in
+	 * non-member still reads why a file was refused.
+	 */
+	public static function redirect_logged_in_from_login_page(): void {
+		if ( ! is_user_logged_in() ) {
+			return;
+		}
+
+		$method = isset( $_SERVER['REQUEST_METHOD'] )
+			? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) )
+			: 'GET';
+
+		if ( 'GET' !== $method ) {
+			return;
+		}
+
+		$settings = msebaa_get_settings();
+		$page_id  = isset( $settings['login_page_id'] ) ? absint( $settings['login_page_id'] ) : 0;
+
+		if ( $page_id <= 0 || ! is_page( $page_id ) ) {
+			return;
+		}
+
+		// A login page that is also the front page would redirect to itself.
+		if ( (int) get_option( 'page_on_front' ) === $page_id ) {
+			return;
+		}
+
+		if ( class_exists( 'Msebaa_Media_Gate' ) && isset( $_GET[ Msebaa_Media_Gate::DENIED_ARG ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only query flag.
+			return;
+		}
+
+		wp_safe_redirect( home_url( '/' ) );
+		exit;
 	}
 
 	/**
