@@ -476,6 +476,92 @@ class Msebaa_Api_Client {
 	}
 
 	/**
+	 * Read primary organization, membership type, and expiration for one Individual.
+	 *
+	 * Uses the member idToken from login. A transport or HTTP failure is a WP_Error
+	 * so the caller can keep the last stored values. An empty result is a successful
+	 * read with blank fields.
+	 *
+	 * @param string $id_token Member idToken (never logged).
+	 * @param string $owner_id MemberSuite Individual GUID from whoami.
+	 * @return array{primary_organization: string, membership_type: string, membership_expiration: string}|WP_Error
+	 */
+	public function individual_membership_profile( string $id_token, string $owner_id ) {
+		if ( '' === $this->tenant_id || '' === $id_token ) {
+			return new WP_Error(
+				'msebaa_profile_failed',
+				__( 'Sign-in failed. Please try again or contact support.', 'membersuite-ebaa' )
+			);
+		}
+
+		if ( ! preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $owner_id ) ) {
+			return new WP_Error(
+				'msebaa_profile_failed',
+				__( 'Sign-in failed. Please try again or contact support.', 'membersuite-ebaa' )
+			);
+		}
+
+		$msql = sprintf(
+			"SELECT PrimaryOrganization.Name, Membership.Type.Name, Membership.ExpirationDate FROM Individual WHERE ID = '%s'",
+			$owner_id
+		);
+
+		$query = http_build_query(
+			array(
+				'msql'     => $msql,
+				'page'     => 1,
+				'pageSize' => 1,
+			),
+			'',
+			'&',
+			PHP_QUERY_RFC3986
+		);
+
+		$path = '/crm/v1/individuals/' . rawurlencode( $this->tenant_id ) . '?' . $query;
+
+		$response = $this->request(
+			'GET',
+			$path,
+			array(
+				'headers' => array(
+					'Accept'        => 'application/json',
+					'Authorization' => 'Bearer ' . $id_token,
+				),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return new WP_Error(
+				'msebaa_profile_failed',
+				__( 'Sign-in failed. Please try again or contact support.', 'membersuite-ebaa' )
+			);
+		}
+
+		$data = $this->unwrap_payload( $response['body'] );
+		if ( is_wp_error( $data ) ) {
+			return new WP_Error(
+				'msebaa_profile_failed',
+				__( 'Sign-in failed. Please try again or contact support.', 'membersuite-ebaa' )
+			);
+		}
+
+		$record = $this->first_record( $data );
+		if ( null === $record ) {
+			return array(
+				'primary_organization'  => '',
+				'membership_type'       => '',
+				'membership_expiration' => '',
+			);
+		}
+
+		return array(
+			'primary_organization'  => sanitize_text_field( $this->value_at_path( $record, 'primaryOrganization.Name' ) ),
+			'membership_type'       => sanitize_text_field( $this->value_at_path( $record, 'membership.Type.Name' ) ),
+			'membership_expiration' => $this->normalize_expiration_date( $this->value_at_path( $record, 'membership.ExpirationDate' ) ),
+		);
+	}
+
+	/**
 	 * Current tenant ID.
 	 */
 	public function get_tenant_id(): string {
@@ -759,5 +845,90 @@ class Msebaa_Api_Client {
 		}
 
 		return sanitize_text_field( (string) $query['tokenGUID'] );
+	}
+
+	/**
+	 * First MSQL row from a list payload, or the payload itself when it is one record.
+	 *
+	 * @param mixed $payload Unwrapped response body.
+	 * @return array<string, mixed>|null
+	 */
+	protected function first_record( $payload ): ?array {
+		if ( ! is_array( $payload ) ) {
+			return null;
+		}
+
+		if ( array_is_list( $payload ) ) {
+			$first = $payload[0] ?? null;
+
+			return is_array( $first ) ? $first : null;
+		}
+
+		foreach ( array( 'individuals', 'records', 'results', 'items' ) as $key ) {
+			if ( ! isset( $payload[ $key ] ) || ! is_array( $payload[ $key ] ) || ! array_is_list( $payload[ $key ] ) ) {
+				continue;
+			}
+
+			$first = $payload[ $key ][0] ?? null;
+			if ( is_array( $first ) ) {
+				return $first;
+			}
+		}
+
+		return $payload;
+	}
+
+	/**
+	 * Read a dotted path from a record, including flat keys such as "membership.ExpirationDate".
+	 *
+	 * @param array<string, mixed> $record Record row.
+	 * @param string               $path   Dotted field path.
+	 */
+	protected function value_at_path( array $record, string $path ): string {
+		$parts = explode( '.', $path );
+		$node  = $record;
+
+		foreach ( $parts as $index => $part ) {
+			if ( ! is_array( $node ) ) {
+				return '';
+			}
+
+			$found = null;
+			foreach ( $node as $key => $value ) {
+				if ( 0 === strcasecmp( (string) $key, $part ) ) {
+					$found = $value;
+					break;
+				}
+			}
+
+			if ( null === $found ) {
+				$remaining = implode( '.', array_slice( $parts, $index ) );
+				foreach ( $node as $key => $value ) {
+					if ( 0 === strcasecmp( (string) $key, $remaining ) && is_scalar( $value ) ) {
+						return trim( (string) $value );
+					}
+				}
+
+				return '';
+			}
+
+			$node = $found;
+		}
+
+		return is_scalar( $node ) ? trim( (string) $node ) : '';
+	}
+
+	/**
+	 * Keep the calendar date from a MemberSuite datetime, or empty when it cannot be read.
+	 *
+	 * @param string $raw Raw ExpirationDate value.
+	 */
+	protected function normalize_expiration_date( string $raw ): string {
+		$raw = trim( $raw );
+		if ( preg_match( '/^(\d{4}-\d{2}-\d{2})/', $raw, $matches ) ) {
+			return $matches[1];
+		}
+
+		return '';
 	}
 }

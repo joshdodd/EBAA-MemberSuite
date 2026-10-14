@@ -301,7 +301,14 @@ class Msebaa_Sso {
 			);
 		}
 
-		$user_id = self::provision_or_link( $whoami );
+		$membership = $client->individual_membership_profile( $login['id_token'], $owner_id );
+		if ( is_wp_error( $membership ) ) {
+			// Organization and membership dates are profile data. Sign-in still completes
+			// and the last stored values stay in place.
+			$membership = null;
+		}
+
+		$user_id = self::provision_or_link( $whoami, $membership );
 		if ( is_wp_error( $user_id ) ) {
 			return $user_id;
 		}
@@ -324,12 +331,7 @@ class Msebaa_Sso {
 			$user_id,
 			array(
 				'receives_member_benefits' => $receives,
-				'profile'                  => array(
-					'first_name' => isset( $whoami['firstName'] ) ? (string) $whoami['firstName'] : '',
-					'last_name'  => isset( $whoami['lastName'] ) ? (string) $whoami['lastName'] : '',
-					'email'      => isset( $whoami['email'] ) ? (string) $whoami['email'] : '',
-					'owner_id'   => $owner_id,
-				),
+				'profile'                  => self::cache_profile( $whoami, $owner_id, $membership ),
 				'synced_at'                => $synced_at,
 			)
 		);
@@ -558,12 +560,40 @@ class Msebaa_Sso {
 	}
 
 	/**
+	 * Profile subset stored in the membership transient.
+	 *
+	 * @param array<string, mixed>      $whoami     whoami payload.
+	 * @param string                    $owner_id   Sanitized owner ID.
+	 * @param array<string, mixed>|null $membership CRM fields, or null when that read failed.
+	 * @return array<string, string>
+	 */
+	private static function cache_profile( array $whoami, string $owner_id, ?array $membership ): array {
+		$profile = array(
+			'first_name' => isset( $whoami['firstName'] ) ? (string) $whoami['firstName'] : '',
+			'last_name'  => isset( $whoami['lastName'] ) ? (string) $whoami['lastName'] : '',
+			'email'      => isset( $whoami['email'] ) ? (string) $whoami['email'] : '',
+			'owner_id'   => $owner_id,
+		);
+
+		if ( ! is_array( $membership ) ) {
+			return $profile;
+		}
+
+		$profile['primary_organization']  = isset( $membership['primary_organization'] ) ? (string) $membership['primary_organization'] : '';
+		$profile['membership_type']       = isset( $membership['membership_type'] ) ? (string) $membership['membership_type'] : '';
+		$profile['membership_expiration'] = isset( $membership['membership_expiration'] ) ? (string) $membership['membership_expiration'] : '';
+
+		return $profile;
+	}
+
+	/**
 	 * Create or reuse a WP user linked by MemberSuite ownerId only.
 	 *
-	 * @param array<string, mixed> $whoami whoami payload.
+	 * @param array<string, mixed>      $whoami     whoami payload.
+	 * @param array<string, mixed>|null $membership CRM fields, or null to leave org/type/expiration unchanged.
 	 * @return int|WP_Error User ID or error.
 	 */
-	public static function provision_or_link( array $whoami ) {
+	public static function provision_or_link( array $whoami, ?array $membership = null ) {
 		$owner_id = self::owner_id_from_whoami( $whoami );
 		if ( '' === $owner_id ) {
 			return new WP_Error(
@@ -637,19 +667,24 @@ class Msebaa_Sso {
 
 		$receives = self::receives_benefits_from_whoami( $whoami );
 
-		$saved = Msebaa_User_Repository::save_link(
-			(int) $user_id,
-			array(
-				'owner_id'                 => $owner_id,
-				'user_id'                  => isset( $whoami['userId'] ) ? (string) $whoami['userId'] : '',
-				'membership_id'            => isset( $whoami['membershipId'] ) ? (string) $whoami['membershipId'] : '',
-				'receives_member_benefits' => $receives,
-				'first_name'               => $first,
-				'last_name'                => $last,
-				'email'                    => $email,
-				'last_synced'              => gmdate( 'Y-m-d H:i:s' ),
-			)
+		$link = array(
+			'owner_id'                 => $owner_id,
+			'user_id'                  => isset( $whoami['userId'] ) ? (string) $whoami['userId'] : '',
+			'membership_id'            => isset( $whoami['membershipId'] ) ? (string) $whoami['membershipId'] : '',
+			'receives_member_benefits' => $receives,
+			'first_name'               => $first,
+			'last_name'                => $last,
+			'email'                    => $email,
+			'last_synced'              => gmdate( 'Y-m-d H:i:s' ),
 		);
+
+		if ( is_array( $membership ) ) {
+			$link['primary_organization']  = isset( $membership['primary_organization'] ) ? (string) $membership['primary_organization'] : '';
+			$link['membership_type']       = isset( $membership['membership_type'] ) ? (string) $membership['membership_type'] : '';
+			$link['membership_expiration'] = isset( $membership['membership_expiration'] ) ? (string) $membership['membership_expiration'] : '';
+		}
+
+		$saved = Msebaa_User_Repository::save_link( (int) $user_id, $link );
 
 		if ( is_wp_error( $saved ) ) {
 			return new WP_Error(

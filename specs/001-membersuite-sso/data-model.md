@@ -32,6 +32,9 @@ Represents the association between a WP user and a MemberSuite Individual.
 | `msebaa_first_name` | user meta | string | sanitize_text_field | Synced from MemberSuite |
 | `msebaa_last_name` | user meta | string | sanitize_text_field | Synced from MemberSuite |
 | `msebaa_email` | user meta | string | sanitize_email | Mirror; WP `user_email` also updated when safe |
+| `msebaa_primary_organization` | user meta | string | sanitize_text_field | Individual `PrimaryOrganization.Name`; empty when none |
+| `msebaa_membership_type` | user meta | string | sanitize_text_field | Individual `Membership.Type.Name`; empty when none |
+| `msebaa_membership_expiration` | user meta | string (`Y-m-d`) | calendar date or empty | Individual `Membership.ExpirationDate` date portion |
 | `msebaa_last_synced` | user meta | string (GMT datetime) | `gmdate` | Cache freshness signal |
 | `msebaa_linked` | user meta | string `'1'` | presence = SSO-linked | Triggers password-login block |
 

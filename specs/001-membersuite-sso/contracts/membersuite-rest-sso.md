@@ -68,7 +68,7 @@ GET /crm/v1/individuals/{tenantId}?msql=<urlencoded MSQL where ID='{ownerId}'>&p
 Authorization: Bearer <idToken>
 ```
 
-Used only if `whoami` lacks a needed core field; v1 may skip if `whoami` is sufficient.
+Called after `whoami` on each successful sign-in, using the member Bearer idToken. MSQL selects `PrimaryOrganization.Name`, `Membership.Type.Name`, and `Membership.ExpirationDate` for `ID = '{ownerId}'`. A failed call does not abort sign-in; the last stored values are kept. An empty result stores blank organization, type, and expiration.
 
 ## Error handling contract
 

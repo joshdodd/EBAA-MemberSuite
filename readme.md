@@ -136,6 +136,9 @@ The linked member snapshot, or `null` when nobody linked is signed in.
 | `last_name`                | `string`                             |
 | `receives_member_benefits` | `bool`                               |
 | `membership_id`            | `string` — may be empty              |
+| `primary_organization`     | `string` — organization name, or empty |
+| `membership_type`          | `string` — membership type name, or empty |
+| `membership_expiration`    | `string` — `Y-m-d`, or empty         |
 | `wp_user_id`               | `int`                                |
 | `last_synced`              | `string` — GMT datetime, or empty    |
 
@@ -149,7 +152,7 @@ if ( null !== $member ) {
 
 ### `msebaa_get_member_field( string $key ): string`
 
-One string from that snapshot. Allowed keys: `owner_id`, `email`, `first_name`, `last_name`, `membership_id`, `last_synced`. Any other key, a signed-out visitor, or a missing field returns `''`.
+One string from that snapshot. Allowed keys: `owner_id`, `email`, `first_name`, `last_name`, `membership_id`, `primary_organization`, `membership_type`, `membership_expiration`, `last_synced`. Any other key, a signed-out visitor, or a missing field returns `''`.
 
 ```php
 $first_name = msebaa_get_member_field( 'first_name' );

@@ -30,6 +30,9 @@ class Msebaa_Helpers {
 		'first_name',
 		'last_name',
 		'membership_id',
+		'primary_organization',
+		'membership_type',
+		'membership_expiration',
 		'last_synced',
 	);
 
@@ -54,6 +57,9 @@ class Msebaa_Helpers {
 	 *     last_name: string,
 	 *     receives_member_benefits: bool,
 	 *     membership_id: string,
+	 *     primary_organization: string,
+	 *     membership_type: string,
+	 *     membership_expiration: string,
 	 *     wp_user_id: int,
 	 *     last_synced: string
 	 * }|null
@@ -92,6 +98,9 @@ class Msebaa_Helpers {
 			'last_name'                => self::pick_string( $profile, $snapshot, 'last_name' ),
 			'receives_member_benefits' => self::benefits_from_sources( $cache, $snapshot ),
 			'membership_id'            => is_array( $snapshot ) ? (string) ( $snapshot['membership_id'] ?? '' ) : '',
+			'primary_organization'     => self::pick_string( $profile, $snapshot, 'primary_organization' ),
+			'membership_type'          => self::pick_string( $profile, $snapshot, 'membership_type' ),
+			'membership_expiration'    => self::pick_string( $profile, $snapshot, 'membership_expiration' ),
 			'wp_user_id'               => $user_id,
 			'last_synced'              => self::last_synced_from_sources( $cache, $snapshot ),
 		);
@@ -253,7 +262,8 @@ function msebaa_receives_member_benefits(): bool {
  * Current linked member snapshot, or null when nobody linked is signed in.
  *
  * Keys: owner_id, email, first_name, last_name, receives_member_benefits,
- * membership_id (may be empty), wp_user_id, last_synced (GMT or empty).
+ * membership_id (may be empty), primary_organization, membership_type,
+ * membership_expiration (Y-m-d or empty), wp_user_id, last_synced (GMT or empty).
  * Safe default before `init`, when signed out, or when the user is not linked: null.
  *
  * @return array{
@@ -263,6 +273,9 @@ function msebaa_receives_member_benefits(): bool {
  *     last_name: string,
  *     receives_member_benefits: bool,
  *     membership_id: string,
+ *     primary_organization: string,
+ *     membership_type: string,
+ *     membership_expiration: string,
  *     wp_user_id: int,
  *     last_synced: string
  * }|null
@@ -274,7 +287,8 @@ function msebaa_get_current_member(): ?array {
 /**
  * One string field from the current member snapshot.
  *
- * Allowed keys: owner_id, email, first_name, last_name, membership_id, last_synced.
+ * Allowed keys: owner_id, email, first_name, last_name, membership_id,
+ * primary_organization, membership_type, membership_expiration, last_synced.
  * Safe default for unknown keys, a signed-out visitor, or a missing field: empty string.
  *
  * @param string $key Field key from the member snapshot.

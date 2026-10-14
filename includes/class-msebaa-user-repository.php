@@ -52,6 +52,21 @@ class Msebaa_User_Repository {
 	public const META_EMAIL = 'msebaa_email';
 
 	/**
+	 * Meta key: primary organization name.
+	 */
+	public const META_PRIMARY_ORGANIZATION = 'msebaa_primary_organization';
+
+	/**
+	 * Meta key: membership type name.
+	 */
+	public const META_MEMBERSHIP_TYPE = 'msebaa_membership_type';
+
+	/**
+	 * Meta key: membership expiration date (Y-m-d, may be empty).
+	 */
+	public const META_MEMBERSHIP_EXPIRATION = 'msebaa_membership_expiration';
+
+	/**
 	 * Meta key: last synced GMT datetime.
 	 */
 	public const META_LAST_SYNCED = 'msebaa_last_synced';
@@ -159,6 +174,27 @@ class Msebaa_User_Repository {
 			self::META_EMAIL,
 			isset( $data['email'] ) ? sanitize_email( (string) $data['email'] ) : ''
 		);
+		if ( array_key_exists( 'primary_organization', $data ) ) {
+			update_user_meta(
+				$user_id,
+				self::META_PRIMARY_ORGANIZATION,
+				sanitize_text_field( (string) $data['primary_organization'] )
+			);
+		}
+		if ( array_key_exists( 'membership_type', $data ) ) {
+			update_user_meta(
+				$user_id,
+				self::META_MEMBERSHIP_TYPE,
+				sanitize_text_field( (string) $data['membership_type'] )
+			);
+		}
+		if ( array_key_exists( 'membership_expiration', $data ) ) {
+			update_user_meta(
+				$user_id,
+				self::META_MEMBERSHIP_EXPIRATION,
+				self::sanitize_expiration_date( (string) $data['membership_expiration'] )
+			);
+		}
 		update_user_meta( $user_id, self::META_LAST_SYNCED, $synced );
 		update_user_meta( $user_id, self::META_LINKED, '1' );
 
@@ -191,8 +227,25 @@ class Msebaa_User_Repository {
 			'first_name'               => (string) get_user_meta( $user_id, self::META_FIRST_NAME, true ),
 			'last_name'                => (string) get_user_meta( $user_id, self::META_LAST_NAME, true ),
 			'email'                    => (string) get_user_meta( $user_id, self::META_EMAIL, true ),
+			'primary_organization'     => (string) get_user_meta( $user_id, self::META_PRIMARY_ORGANIZATION, true ),
+			'membership_type'          => (string) get_user_meta( $user_id, self::META_MEMBERSHIP_TYPE, true ),
+			'membership_expiration'    => (string) get_user_meta( $user_id, self::META_MEMBERSHIP_EXPIRATION, true ),
 			'last_synced'              => (string) get_user_meta( $user_id, self::META_LAST_SYNCED, true ),
 			'linked'                   => true,
 		);
+	}
+
+	/**
+	 * Keep a Y-m-d expiration date, or empty when the value is not a calendar date.
+	 *
+	 * @param string $value Raw date.
+	 */
+	private static function sanitize_expiration_date( string $value ): string {
+		$value = sanitize_text_field( $value );
+		if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
+			return $value;
+		}
+
+		return '';
 	}
 }
