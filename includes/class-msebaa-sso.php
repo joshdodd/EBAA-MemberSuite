@@ -190,7 +190,7 @@ class Msebaa_Sso {
 			$redirect_raw = (string) wp_unslash( $_GET['msebaa_redirect'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		}
 
-		$redirect_token = self::store_redirect( $redirect_raw );
+		$return_url = self::absolute_return_url( self::validate_redirect_url( $redirect_raw ) );
 
 		if ( '' === $email || '' === $password ) {
 			self::fail_and_redirect(
@@ -199,41 +199,44 @@ class Msebaa_Sso {
 			);
 		}
 
-		$result = self::authenticate( $email, $password );
+		$location = self::authenticate( $email, $password, $return_url );
 
 		// Clear password from local scope as soon as auth returns.
 		$password = '';
 
-		if ( is_wp_error( $result ) ) {
-			self::fail_and_redirect( $fallback, $result->get_error_message() );
+		if ( is_wp_error( $location ) ) {
+			self::fail_and_redirect( $fallback, $location->get_error_message() );
 		}
 
-		$return_url = self::consume_redirect( $redirect_token );
-		if ( '' === $return_url ) {
-			$return_url = $fallback;
+		if ( ! is_string( $location ) || ! self::is_portal_sso_location( $location ) ) {
+			self::fail_and_redirect(
+				$fallback,
+				__( 'Sign-in failed. Please try again or contact support.', 'membersuite-ebaa' )
+			);
 		}
 
-		// Entitled members return to the original post, page, or download.
-		// Anyone else stays on that item's denial message.
-		$return_url = Msebaa_Content_Gate::redirect_after_sso( $return_url );
-		if ( '' === $return_url ) {
-			$return_url = $fallback;
-		}
-
-		$return_url = wp_validate_redirect( $return_url, home_url( '/' ) );
-
-		wp_safe_redirect( $return_url );
+		/*
+		 * Send the browser to MemberSuite so the portal can set its session.
+		 * wp_safe_redirect() refuses this host; the URL is allowlisted above.
+		 */
+		// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
+		wp_redirect( $location );
 		exit;
 	}
 
 	/**
-	 * Run Outside SSO and establish a WordPress session.
+	 * Run Outside SSO, establish a WordPress session, and return the portal redirect.
 	 *
-	 * @param string $email    Sanitized email.
-	 * @param string $password MemberSuite password (never logged).
-	 * @return true|WP_Error
+	 * The portal's /auth/jwt-sso page consumes tokenGUID. This method identifies the
+	 * user with the loginUser idToken and does not exchange that GUID, then the
+	 * caller redirects the browser to the MemberSuite Location URL.
+	 *
+	 * @param string $email      Sanitized email.
+	 * @param string $password   MemberSuite password (never logged).
+	 * @param string $return_url Local URL MemberSuite should open after the portal session starts.
+	 * @return string|WP_Error Portal jwt-sso URL, or an error.
 	 */
-	public static function authenticate( string $email, string $password ) {
+	public static function authenticate( string $email, string $password, string $return_url = '' ) {
 		$client = new Msebaa_Api_Client();
 
 		$login = $client->login_user( $email, $password );
@@ -241,23 +244,7 @@ class Msebaa_Sso {
 			return self::generic_auth_error( $login );
 		}
 
-		$next_url = home_url( '/' );
-		$jwt      = $client->jwt_sso(
-			$login['id_token'],
-			$login['refresh_token'],
-			$login['access_token'],
-			$next_url
-		);
-		if ( is_wp_error( $jwt ) ) {
-			return self::generic_auth_error( $jwt );
-		}
-
-		$bearer = $client->bearer_token_sso( $jwt['token_guid'] );
-		if ( is_wp_error( $bearer ) ) {
-			return self::generic_auth_error( $bearer );
-		}
-
-		$whoami = $client->whoami( $bearer['id_token'] );
+		$whoami = $client->whoami( $login['id_token'] );
 		if ( is_wp_error( $whoami ) ) {
 			return self::generic_auth_error( $whoami );
 		}
@@ -305,9 +292,82 @@ class Msebaa_Sso {
 		);
 
 		wp_set_current_user( $user_id );
+
+		// Entitled members return to the original post, page, or download.
+		// Anyone else stays on that item's denial message.
+		$return_url = self::absolute_return_url( Msebaa_Content_Gate::redirect_after_sso( $return_url ) );
+
+		$jwt = $client->jwt_sso(
+			$login['id_token'],
+			$login['refresh_token'],
+			$login['access_token'],
+			$return_url
+		);
+		if ( is_wp_error( $jwt ) ) {
+			return self::generic_auth_error( $jwt );
+		}
+
+		$location = isset( $jwt['location'] ) ? (string) $jwt['location'] : '';
+		if ( ! self::is_portal_sso_location( $location ) ) {
+			return new WP_Error(
+				'msebaa_jwt_sso_failed',
+				__( 'Sign-in failed. Please try again or contact support.', 'membersuite-ebaa' )
+			);
+		}
+
+		// Cookie goes out on the redirect to MemberSuite, so the return to nextUrl is signed in.
 		wp_set_auth_cookie( $user_id, true );
 
-		return true;
+		return $location;
+	}
+
+	/**
+	 * Local return URL as an absolute http(s) address.
+	 *
+	 * MemberSuite sends the browser to nextUrl with window.location. A path such as
+	 * `/login/` would stay on the portal host, so relative targets are expanded.
+	 *
+	 * @param string $url Candidate local URL or path.
+	 */
+	private static function absolute_return_url( string $url ): string {
+		$url = (string) wp_validate_redirect( $url, '' );
+		if ( '' === $url ) {
+			$url = self::get_sso_login_url();
+		}
+
+		if ( str_starts_with( $url, '/' ) ) {
+			$url = home_url( $url );
+		}
+
+		$url = (string) wp_validate_redirect( $url, home_url( '/' ) );
+		if ( ! str_starts_with( $url, 'https://' ) && ! str_starts_with( $url, 'http://' ) ) {
+			$url = home_url( '/' );
+		}
+
+		return $url;
+	}
+
+	/**
+	 * Whether a URL is the MemberSuite portal jwt-sso handoff.
+	 *
+	 * @param string $url Candidate Location from JWTSSO.
+	 */
+	private static function is_portal_sso_location( string $url ): bool {
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) ) {
+			return false;
+		}
+
+		if ( 'https' !== ( $parts['scheme'] ?? '' ) ) {
+			return false;
+		}
+
+		$host = strtolower( (string) ( $parts['host'] ?? '' ) );
+		if ( ! str_ends_with( $host, '.users.membersuite.com' ) ) {
+			return false;
+		}
+
+		return '/auth/jwt-sso' === ( $parts['path'] ?? '' );
 	}
 
 	/**

@@ -120,9 +120,11 @@ WordPress plugin at repository root per `plan.md`: `membersuite-ebaa.php`, `incl
 - [X] T033 [P] Ensure all visitor-facing strings use `__()`, `_e()`, `esc_html__()`, etc. with text domain `membersuite-ebaa` across `public/`, `admin/`, and `includes/`
 - [X] T034 [P] Generate or stub `languages/membersuite-ebaa.pot` for translator bootstrap
 - [X] T035 Security pass: confirm no passwords/tokens in logs or HTML; all outputs escaped; SSO and meta saves use nonces; settings require `manage_options`; HTTP only via `wp_remote_*`
-- [ ] T036 Run end-to-end validation against MemberSuite sandbox using `specs/001-membersuite-sso/quickstart.md` Scenarios A–E; fix any gaps found
-  - Validated on `https://ebaa.local` (sandbox tenant): A3, A4, B, C, D all pass; E verified read-only (destructive on a live clone). Gaps found and fixed: `authenticate` filter priority (linked users could still sign in with a WordPress password), `msebaa_member` role never re-created after activation, failed sign-in redirected to the home page and lost the error message.
-  - Remaining: A1, A2 (linked meta after a real sign-in), A5, A6 — need sandbox logins with `receivesMemberBenefits` true and false.
+- [X] T036 Run end-to-end validation against MemberSuite sandbox using `specs/001-membersuite-sso/quickstart.md` Scenarios A–E; fix any gaps found
+  - Validated on `https://ebaa.local` (tenant `35240`): A3, A4, B, C, D all pass; E verified read-only (destructive on a live clone). Gaps found and fixed: `authenticate` filter priority (linked users could still sign in with a WordPress password), `msebaa_member` role never re-created after activation, failed sign-in redirected to the home page and lost the error message.
+  - 2026-10-13: `josh+ebaa@doddwebco.com` is not a portal user on tenant `35240` (`loginUser` HTTP 404 `User not found`).
+  - 2026-10-13 A1/A2/A4/A5 with `josh+ebaatest@doddwebco.com`: form sign-in completed in about 3s, session cookie set, login page showed “You are already signed in.” Linked meta present (`msebaa_owner_id`, `msebaa_linked=1`, `msebaa_receives_member_benefits=1`), role `msebaa_member`, cache transient written. `wp-login.php` rejected the linked account with the MemberSuite sign-in message and no auth cookie. After removing the local WordPress user, the next sign-in created one user and the following sign-in reused that same user (no duplicate). Response HTML did not include tokens or the password.
+  - 2026-10-13 A6 with `joshuatdodd@gmail.com`: sign-in succeeded; new user role `subscriber`; `msebaa_receives_member_benefits=0`; `msebaa_is_member()` and `msebaa_receives_member_benefits()` both false. Scenarios A–E complete.
 - [X] T037 [P] Add brief theme-helper usage notes (PHPDoc or `readme.txt` Plugin URI / description section) pointing theme authors at the seven helpers without exposing internal classes
 
 ---
