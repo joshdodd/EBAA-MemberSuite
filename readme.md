@@ -13,7 +13,7 @@ An administrator with the `manage_options` capability completes this once.
  [msebaa_sso_login]
 ```
 
-1. Open **Settings → MemberSuite EBAA** and save the connection:
+3. Open **Settings → MemberSuite EBAA** and save the connection:
 
 | Field                 | What to enter                                                                                                                       |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -24,7 +24,7 @@ An administrator with the `manage_options` capability completes this once.
 | **Login page**        | The published page that contains `[msebaa_sso_login]`. Theme login links and members-only “Sign in” links use this page.            |
 | **HTTP timeout**      | Seconds to wait on MemberSuite requests. Allowed range is 5–30. The default is 15.                                                  |
 
-1. Optionally create a second page with `[msebaa_password_reset]` if you want a standalone reset form. The sign-in page already includes a **Forgot password?** panel, so a second page is only needed when the reset form should live on its own.
+4. Optionally create a second page with `[msebaa_password_reset]` if you want a standalone reset form. The sign-in page already includes a **Forgot password?** panel, so a second page is only needed when the reset form should live on its own.
 
 Sign-in needs the Association Key. Password reset also needs the Association ID, API user email, and API user password. Until those four values are saved, the reset form tells the visitor that reset is temporarily unavailable.
 
@@ -83,14 +83,7 @@ Templates should print the body with `the_content()`. The plugin replaces restri
 
 ### Media
 
-In the media modal, or on the media attachment edit screen, check **Members Only**. The public file URL is rewritten to a download address on the site (`/?msebaa_download={id}`) instead of the raw uploads path.
-
-| Who requests the file                                                             | What happens                                                                       |
-| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Signed-in member currently receiving benefits, or a user who can `manage_options` | The file is served                                                                 |
-| Everyone else                                                                     | They are sent to the login page with “This file is not accessible to non-members.” |
-
-A member who signs in from that prompt is sent back to the download. The media library in wp-admin still shows the real file URL so editors can manage the library.
+TBD
 
 ## Theme helpers
 
