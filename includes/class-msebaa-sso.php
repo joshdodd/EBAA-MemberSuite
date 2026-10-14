@@ -58,6 +58,8 @@ class Msebaa_Sso {
 		 */
 		add_filter( 'authenticate', array( __CLASS__, 'block_password_login_for_linked' ), 40, 3 );
 		add_filter( 'allow_password_reset', array( __CLASS__, 'disallow_password_reset_for_linked' ), 10, 2 );
+		add_filter( 'logout_redirect', array( __CLASS__, 'redirect_logout_to_portal' ), 10, 3 );
+		add_filter( 'allowed_redirect_hosts', array( __CLASS__, 'allow_portal_host' ) );
 	}
 
 	/**
@@ -317,8 +319,118 @@ class Msebaa_Sso {
 
 		// Cookie goes out on the redirect to MemberSuite, so the return to nextUrl is signed in.
 		wp_set_auth_cookie( $user_id, true );
+		self::remember_portal_host( $location );
 
 		return $location;
+	}
+
+	/**
+	 * After WordPress logout, send a linked member through the portal logout page.
+	 *
+	 * The portal session lives in that site's browser storage. Visiting
+	 * `/auth/jwt-sso?logOut=true` clears it. Unlinked users keep WordPress's redirect.
+	 *
+	 * @param string           $redirect_to           Requested post-logout URL.
+	 * @param string           $requested_redirect_to Unused original request.
+	 * @param WP_User|WP_Error $user                  User who just logged out.
+	 */
+	public static function redirect_logout_to_portal( $redirect_to, $requested_redirect_to, $user ): string {
+		unset( $requested_redirect_to );
+
+		if ( ! $user instanceof WP_User || ! self::is_linked_user( $user->ID ) ) {
+			return (string) $redirect_to;
+		}
+
+		$portal = self::portal_logout_url();
+		if ( '' === $portal ) {
+			return (string) $redirect_to;
+		}
+
+		return $portal;
+	}
+
+	/**
+	 * Allow the saved MemberSuite portal host in wp_safe_redirect().
+	 *
+	 * @param string[] $hosts Allowed hosts.
+	 * @return string[]
+	 */
+	public static function allow_portal_host( $hosts ): array {
+		$hosts = is_array( $hosts ) ? $hosts : array();
+		$host  = self::saved_portal_host();
+		if ( '' !== $host ) {
+			$hosts[] = $host;
+		}
+
+		return $hosts;
+	}
+
+	/**
+	 * Portal URL that clears the MemberSuite browser session.
+	 */
+	private static function portal_logout_url(): string {
+		$host = self::saved_portal_host();
+		if ( '' === $host ) {
+			return '';
+		}
+
+		return 'https://' . $host . '/auth/jwt-sso?logOut=true';
+	}
+
+	/**
+	 * Remember the portal host from a successful JWTSSO Location.
+	 *
+	 * @param string $location Allowlisted jwt-sso URL.
+	 */
+	private static function remember_portal_host( string $location ): void {
+		$host = self::portal_host_from_location( $location );
+		if ( '' === $host || get_option( 'msebaa_portal_host' ) === $host ) {
+			return;
+		}
+
+		update_option( 'msebaa_portal_host', $host, false );
+	}
+
+	/**
+	 * Saved portal hostname, or empty when missing or not a MemberSuite portal host.
+	 */
+	private static function saved_portal_host(): string {
+		$host = get_option( 'msebaa_portal_host', '' );
+		if ( ! is_string( $host ) ) {
+			return '';
+		}
+
+		$host = strtolower( $host );
+		if ( ! self::is_membersuite_portal_host( $host ) ) {
+			return '';
+		}
+
+		return $host;
+	}
+
+	/**
+	 * Hostname from a jwt-sso Location, or empty when it is not the portal.
+	 *
+	 * @param string $location Candidate URL.
+	 */
+	private static function portal_host_from_location( string $location ): string {
+		if ( ! self::is_portal_sso_location( $location ) ) {
+			return '';
+		}
+
+		$parts = wp_parse_url( $location );
+		$host  = strtolower( (string) ( $parts['host'] ?? '' ) );
+
+		return self::is_membersuite_portal_host( $host ) ? $host : '';
+	}
+
+	/**
+	 * Whether a hostname is a MemberSuite member portal.
+	 *
+	 * @param string $host Hostname without a scheme.
+	 */
+	private static function is_membersuite_portal_host( string $host ): bool {
+		return '' !== $host && str_ends_with( $host, '.users.membersuite.com' );
 	}
 
 	/**
@@ -363,7 +475,7 @@ class Msebaa_Sso {
 		}
 
 		$host = strtolower( (string) ( $parts['host'] ?? '' ) );
-		if ( ! str_ends_with( $host, '.users.membersuite.com' ) ) {
+		if ( ! self::is_membersuite_portal_host( $host ) ) {
 			return false;
 		}
 

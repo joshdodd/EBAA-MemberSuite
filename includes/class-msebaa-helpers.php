@@ -329,7 +329,9 @@ function msebaa_get_login_url( string $redirect = '' ): string {
  * WordPress logout URL.
  *
  * Optional $redirect must be a local URL; otherwise the logout URL targets home.
- * Safe default before `init` or when wp_logout_url() is unavailable: home URL.
+ * Linked members are sent on to the MemberSuite portal logout after WordPress
+ * signs them out, which clears the portal session. Safe default before `init`
+ * or when wp_logout_url() is unavailable: home URL.
  *
  * @param string $redirect Optional local URL to visit after logout.
  */

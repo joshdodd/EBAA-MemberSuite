@@ -17,6 +17,7 @@ global $wpdb;
 
 // Plugin settings, including the API service-account password.
 delete_option( 'msebaa_settings' );
+delete_option( 'msebaa_portal_host' );
 
 // Known transient, deleted by name so external object caches are cleared too.
 delete_transient( 'msebaa_api_id_token' );
