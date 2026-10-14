@@ -78,8 +78,9 @@ Represents the association between a WP user and a MemberSuite Individual.
 | Field | Storage | Type | Validation | Notes |
 |-------|---------|------|------------|-------|
 | `_msebaa_members_only` | post meta | string `'1'` or absent | Only `'1'` when checkbox on; delete meta when off | Applies to `post`, `page`, `attachment` |
+| `_msebaa_private_paths` | attachment post meta | string[] of uploads-relative paths | Present only while `_msebaa_members_only` is `'1'` | Original, scaled, and intermediate paths that must redirect. Cleared when the flag is removed |
 
-**Save rules**: Actor must `current_user_can( 'edit_post', $post_id )` (or attachment equivalent); nonce verified; value sanitized.
+**Save rules**: Actor must `current_user_can( 'edit_post', $post_id )` (or attachment equivalent); nonce verified; value sanitized. Attachment saves use `attachment_fields_to_save` only. Enabling the flag moves files to private storage before the meta is stored. If the move fails, the flag is not stored. Disabling restores the public files, then deletes both meta keys.
 
 **Entitlement evaluation** (runtime, not stored):
 
@@ -131,7 +132,7 @@ Registered on activation; removed on uninstall (users remapped to `subscriber` o
 | Benefits → role deterministic | Member Identity Link + Role |
 | Members Only editable only if can edit item | Members-Only Content Item |
 | Fail closed when status unknown | Membership Status Cache + gating |
-| Uninstall removes settings, flags, cache — not users/content | Settings, meta, transients |
+| Uninstall restores private media to uploads, then removes settings, flags, private paths, and cache — not users/content | Settings, meta, transients, private files |
 
 ## Out of scope storage
 

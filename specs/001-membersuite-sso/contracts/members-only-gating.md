@@ -7,8 +7,8 @@
 
 | Item | Value |
 |------|--------|
-| UI | Checkbox labeled “Members Only” (translatable) |
-| Objects | `post`, `page`, `attachment` (media) |
+| UI | One checkbox labeled “Members Only” (translatable) per item |
+| Objects | `post` and `page`: sidebar meta box. `attachment`: media-details field only (`attachment_fields_to_edit`). No sidebar meta box on Edit Media |
 | Who can change | Users who can edit that object (`edit_post` / attachment caps) |
 | Persistence | Post meta `_msebaa_members_only` = `'1'` when checked; meta deleted when unchecked |
 | Save guards | Capability check + nonce; ignore POST from users who cannot edit |
@@ -36,17 +36,24 @@ If benefits status unknown/missing for a logged-in non-admin → **not allowed**
 
 | Requester | Behavior |
 |-----------|----------|
-| Allowed | File download/stream succeeds |
-| Denied | HTTP redirect to configured login page; query/message indicates file not accessible to non-members; return URL points at gated download endpoint for the attachment |
-| Published URL | Attachment URLs for flagged media resolve to plugin download endpoint, not raw uploads path |
+| Allowed | Download endpoint streams the private file |
+| Denied | HTTP redirect to the configured login page; message says the file is not accessible to non-members; return URL is the gated download endpoint |
+| Attachment permalink | Same redirect when denied |
+| Uploads URL and resized copies | Public files are removed while the flag is on. A request that reaches WordPress redirects the same way. The body is never the file |
+| Links in post content | Rendered and stored links to that file use the download endpoint while the flag is on, and the public file URL again after it is cleared |
+| Edit Media File URL | Shows the download endpoint while flagged |
 
-### Download endpoint (conceptual)
+### Download endpoint
 
 ```http
-GET /?msebaa_download={attachment_id}&msebaa_nonce={optional}
+GET /?msebaa_download={attachment_id}
 ```
 
-or equivalent rewrite. Validates attachment is members-only flagged (or still checks entitlement for defense in depth), then streams file or redirects.
+Streams the private file when the requester is entitled. Redirects otherwise.
+
+### Private files
+
+While flagged, bytes live in `dirname( ABSPATH ) . '/msebaa-private/{attachment_id}/'`. Post meta `_msebaa_private_paths` lists the uploads-relative paths that must redirect. Unchecking moves the files back and deletes that meta.
 
 ## Return after sign-in
 
@@ -54,4 +61,4 @@ After successful SSO where user is now entitled, redirect to the stored return U
 
 ## Uninstall
 
-Remove `_msebaa_members_only` meta from all posts; do not delete the posts or files.
+Restore privately stored members-only files to their public uploads paths, then remove `_msebaa_members_only` and `_msebaa_private_paths`. Do not delete the posts or the media files.

@@ -79,7 +79,7 @@
 
 ## 7. Members-only posts/pages
 
-**Decision**: Post meta key `_msebaa_members_only` (`'1'` / absent). Classic meta box + block editor compatible checkbox for `post`, `page`, and `attachment`. Save gated by `edit_post` (or equivalent for the object) + nonce. On `the_content` (singular only), if flagged and requester not entitled, replace body with translatable denial message + login link carrying return URL. Do not strip titles from archives (per assumptions).
+**Decision**: Post meta key `_msebaa_members_only` (`'1'` / absent). Classic meta box + block editor compatible checkbox for `post` and `page` only. Attachments use a single media-details checkbox (section 8), not a second sidebar meta box. Save gated by `edit_post` + nonce. On `the_content` (singular only), if flagged and requester not entitled, replace body with translatable denial message + login link carrying return URL. Do not strip titles from archives (per assumptions).
 
 **Rationale**: FR-008–FR-011; capability = can edit the item.
 
@@ -87,11 +87,21 @@
 
 ## 8. Members-only media / direct URL protection
 
-**Decision**: When an attachment is members-only, filter `wp_get_attachment_url` / related URL filters so public links point to a plugin download route (e.g. `?msebaa_download={attachment_id}` or rewrite). Handler verifies entitlement (member benefits or `manage_options`), then streams the file with correct headers. Unauthorized requests redirect to configured login page with denial query arg + return target. Also guard attachment singular templates via `template_redirect`.
+**Decision**: One checkbox on attachments, via `attachment_fields_to_edit` / `attachment_fields_to_save` (media modal and the Edit Media compat fields). Do not register a side meta box for `attachment`.
 
-**Rationale**: Direct `/wp-content/uploads/…` URLs bypass PHP if the real path is known; rewriting the published URL to a gated endpoint is the WordPress-native mitigation without requiring server config. Document that previously shared raw upload URLs may still hit the filesystem unless the host adds deny rules — optional hardening note in quickstart, not a v1 hard dependency.
+On a successful check, move the original, the `-scaled` original, and every intermediate size out of the public uploads tree into `dirname( ABSPATH ) . '/msebaa-private/{attachment_id}/'`. Delete the public copies. Record the old uploads-relative paths in post meta `_msebaa_private_paths`. Update `_wp_attached_file` and attachment metadata to the private paths. If the private directory is not writable, do not save the flag and show an admin error; the file stays public.
 
-**Alternatives considered**: Moving files outside webroot on flag (more robust, more complex moves/permissions). `.htaccess`-only (not portable across nginx/Local). Rejected as sole strategy.
+On uncheck, move that set back to the recorded public paths and delete `_msebaa_private_paths`.
+
+Published links use the existing `?msebaa_download={attachment_id}` route. The handler streams from the private path only when the requester is entitled (member benefits or `manage_options`). Everyone else is redirected to the login page with the file-denial message and a return URL. The attachment permalink stays on `template_redirect`.
+
+A request for a recorded public uploads path reaches WordPress when the file is gone (`try_files` fallthrough on Local nginx). `template_redirect` matches `_msebaa_private_paths` and redirects to the login page, or to the download route when the requester is entitled. The response never includes the file body.
+
+Rendered post content (`the_content`) rewrites any URL in `_msebaa_private_paths` to the download route. Saving the flag also rewrites stored `post_content` on posts and pages that contain those URLs. Clearing the flag rewrites those stored links back to the public file URL. The Edit Media File URL field shows the download route for flagged attachments, including in wp-admin.
+
+**Rationale**: FR-012, FR-013, SC-007. A `wp_get_attachment_url` filter cannot see a request nginx serves from disk. Removing the public file is what stops delivery. The fallthrough redirect satisfies the login redirect without an nginx or `.htaccess` rule.
+
+**Alternatives considered**: URL rewriting alone (leaves the uploads URL public). `.htaccess` deny rules (ignored by Local nginx). Leaving the file in place and documenting the leak as optional (rejects constitution VI).
 
 ## 9. Return-after-login
 

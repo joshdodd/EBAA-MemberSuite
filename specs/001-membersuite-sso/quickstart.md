@@ -55,18 +55,20 @@ On a test template or temporary `functions.php` probe (remove after):
 
 | Step | Action | Expected |
 |------|--------|----------|
-| D1 | Upload a file; check **Members Only**; save | Attachment flagged; public URL points at gated download |
-| D2 | Open URL signed out | Redirect to login page + non-member file message |
-| D3 | Open as benefits-true member | File downloads |
-| D4 | Open as benefits-false user | Denied like signed-out |
-| D5 | After denial, SSO as member | Return offers/downloads original file |
-| D6 | Admin with `manage_options` | Can download for operations |
+| D1 | Upload a PDF; on Edit Media, confirm one Members Only checkbox (details, no sidebar box); check it; save | `_msebaa_members_only` = `1`; file is gone from `wp-content/uploads/…`; File URL is `/?msebaa_download={id}` |
+| D2 | Open the attachment permalink signed out | Redirect to login + non-member file message; body is not the PDF |
+| D3 | Open the old uploads URL signed out, then as a benefits-false user | Same redirect; body is not the PDF |
+| D4 | Place the file's old URL in a post; view the post signed out | Link href is the download route; following it redirects to login |
+| D5 | Open the download route as a benefits-true member | PDF downloads |
+| D6 | After D2, SSO as that member | Return downloads the file |
+| D7 | Admin with `manage_options` | Can download |
+| D8 | Uncheck Members Only; save | File is back on the uploads URL; the post link points there again; anonymous download succeeds |
 
 ## Scenario E — Uninstall hygiene
 
 1. Note a linked user ID and a flagged post ID.
 2. Uninstall plugin.
-3. Confirm: settings gone; `_msebaa_members_only` removed; `msebaa_*` transients gone; **user account and post/media still exist**.
+3. Confirm: settings gone; `_msebaa_members_only` and `_msebaa_private_paths` removed; privately stored files restored to uploads and the private directory removed; `msebaa_*` transients gone; **user account and post/media still exist**.
 
 ## Automated smoke (when tests exist)
 

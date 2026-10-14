@@ -1,6 +1,7 @@
 <?php
 /**
- * Members Only meta box for posts, pages, and attachments.
+ * Members Only controls: sidebar meta box for posts and pages,
+ * media-details checkbox for attachments.
  *
  * @package Msebaa
  */
@@ -25,24 +26,28 @@ class Msebaa_Members_Only_Meta {
 	public const NONCE_FIELD = 'msebaa_members_only_nonce';
 
 	/**
-	 * Post types that can be marked Members Only.
+	 * Post types that show the sidebar Members Only meta box.
+	 *
+	 * Attachments use the media-details field only, so Edit Media does not
+	 * show a second sidebar checkbox.
 	 *
 	 * @var string[]
 	 */
-	private const POST_TYPES = array( 'post', 'page', 'attachment' );
+	private const POST_TYPES = array( 'post', 'page' );
 
 	/**
-	 * Register the meta box and media-modal field.
+	 * Register the meta box, the media-details field, and save-failure notices.
 	 */
 	public static function register(): void {
 		add_action( 'add_meta_boxes', array( __CLASS__, 'add_meta_boxes' ) );
 		add_action( 'save_post', array( __CLASS__, 'save' ), 10, 2 );
+		add_action( 'admin_notices', array( __CLASS__, 'render_admin_notice' ) );
 		add_filter( 'attachment_fields_to_edit', array( __CLASS__, 'attachment_fields' ), 10, 2 );
 		add_filter( 'attachment_fields_to_save', array( __CLASS__, 'save_attachment_fields' ), 10, 2 );
 	}
 
 	/**
-	 * Add the checkbox meta box to posts, pages, and attachments.
+	 * Add the checkbox meta box to posts and pages.
 	 */
 	public static function add_meta_boxes(): void {
 		foreach ( self::POST_TYPES as $post_type ) {
@@ -180,9 +185,57 @@ class Msebaa_Members_Only_Meta {
 		}
 
 		$checked = isset( $attachment['msebaa_members_only'] ) && '1' === (string) $attachment['msebaa_members_only'];
+		if ( class_exists( 'Msebaa_Media_Gate' ) ) {
+			Msebaa_Media_Gate::apply_members_only( $post_id, $checked );
+			return $post;
+		}
+
 		self::store_flag( $post_id, $checked );
 
 		return $post;
+	}
+
+	/**
+	 * Remember a members-only save error for the current user.
+	 *
+	 * @param string $message Already translated admin message.
+	 */
+	public static function queue_error( string $message ): void {
+		$user_id = get_current_user_id();
+		if ( $user_id <= 0 || '' === $message ) {
+			return;
+		}
+
+		set_transient( self::error_transient_key( $user_id ), $message, MINUTE_IN_SECONDS );
+	}
+
+	/**
+	 * Show a queued members-only save error once.
+	 */
+	public static function render_admin_notice(): void {
+		$user_id = get_current_user_id();
+		if ( $user_id <= 0 ) {
+			return;
+		}
+
+		$key     = self::error_transient_key( $user_id );
+		$message = get_transient( $key );
+		if ( ! is_string( $message ) || '' === $message ) {
+			return;
+		}
+
+		delete_transient( $key );
+
+		echo '<div class="notice notice-error"><p>' . esc_html( $message ) . '</p></div>';
+	}
+
+	/**
+	 * Transient key for a user's members-only save error.
+	 *
+	 * @param int $user_id User ID.
+	 */
+	private static function error_transient_key( int $user_id ): string {
+		return 'msebaa_media_admin_error_' . $user_id;
 	}
 
 	/**

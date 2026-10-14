@@ -3,7 +3,8 @@
  * Uninstall cleanup for MemberSuite EBAA.
  *
  * Removes plugin options, members-only post meta, msebaa_* user meta,
- * msebaa_* transients, and the custom member role. Does not delete
+ * msebaa_* transients, and the custom member role. Restores privately
+ * stored media to the uploads directory first. Does not delete
  * WordPress users, posts, pages, or media files.
  *
  * @package Msebaa
@@ -22,9 +23,21 @@ delete_option( 'msebaa_portal_host' );
 // Known transient, deleted by name so external object caches are cleared too.
 delete_transient( 'msebaa_api_id_token' );
 
+// Restore privately stored members-only files before dropping their meta.
+// Does not delete attachment posts. A file that cannot be moved back keeps its meta.
+require_once __DIR__ . '/includes/class-msebaa-content-gate.php';
+require_once __DIR__ . '/includes/class-msebaa-media-gate.php';
+$msebaa_restore_failed = Msebaa_Media_Gate::restore_all_for_uninstall();
+
 // Members-only flags on posts, pages, and attachments.
 // Deletes the meta key only. Does not call wp_delete_attachment() or remove files.
 delete_post_meta_by_key( '_msebaa_members_only' );
+
+// Successful restores already removed this key. Keep it for files that could not be moved back,
+// and put the members-only flag back so a reinstall still gates those files.
+foreach ( $msebaa_restore_failed as $msebaa_attachment_id ) {
+	update_post_meta( (int) $msebaa_attachment_id, '_msebaa_members_only', '1' );
+}
 
 // All msebaa_* user meta (accounts remain).
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

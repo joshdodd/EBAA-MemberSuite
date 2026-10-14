@@ -6,7 +6,7 @@
 
 ## Summary
 
-Build a WordPress plugin that authenticates visitors through MemberSuite REST **Outside SSO (Option 1)**, provisions/links WordPress users by stable Individual ID, maps `receivesMemberBenefits` to a custom member role (or `subscriber`), exposes theme helper functions backed by cached membership data, and gates posts/pages/media marked Members Only (fail closed). Approach: Settings API + shortcode form → server-side SSO handshake (`loginUser` → `JWTSSO` → `bearerTokenSSO` → `whoami`) → WP session; meta-box flag + content filter / gated download endpoint for entitlement.
+Build a WordPress plugin that authenticates visitors through MemberSuite REST **Outside SSO (Option 1)**, provisions/links WordPress users by stable Individual ID, maps `receivesMemberBenefits` to a custom member role (or `subscriber`), exposes theme helper functions backed by cached membership data, and gates posts/pages/media marked Members Only (fail closed). Approach: Settings API + shortcode form → server-side SSO handshake (`loginUser` → `JWTSSO` → `bearerTokenSSO` → `whoami`) → WP session. Gates posts and pages with a meta-box flag and `the_content`. Gates media with one attachment checkbox, private file storage outside the web root, a download endpoint, and rewrites of in-content file links.
 
 ## Technical Context
 
@@ -14,7 +14,7 @@ Build a WordPress plugin that authenticates visitors through MemberSuite REST **
 
 **Primary Dependencies**: WordPress 6.x core APIs (Settings, HTTP `wp_remote_*`, Users/Roles, Transients, Meta); MemberSuite REST API (`rest.membersuite.com`) Outside SSO
 
-**Storage**: WordPress options (`msebaa_settings`), user meta (identity link + profile snapshot), post meta (`_msebaa_members_only`), transients (`msebaa_member_{user_id}`); no custom tables
+**Storage**: WordPress options (`msebaa_settings`), user meta (identity link + profile snapshot), post meta (`_msebaa_members_only`, `_msebaa_private_paths`), private files under `dirname( ABSPATH ) . '/msebaa-private/'`, transients (`msebaa_member_{user_id}`); no custom tables
 
 **Testing**: Manual MemberSuite sandbox acceptance (required); PHPUnit + WordPress test bootstrap / wp-env with `pre_http_request` mocks for unit/integration of helpers, roles, gating, authenticate filter
 
@@ -39,7 +39,7 @@ Build a WordPress plugin that authenticates visitors through MemberSuite REST **
 | III. Credential & session security | PASS | Server-side tokens only; nonces on SSO + meta saves; `manage_options` for settings; no secrets in repo/logs |
 | IV. Stable theme-facing API | PASS | Seven documented helpers in `contracts/theme-helpers.md`; internals not public |
 | V. Cache-first graceful degradation | PASS | User meta + transients; helpers never hit API per tag; invalidate on SSO sync |
-| VI. Members-only gating fail closed | PASS | Meta checkbox; same entitlement predicate; post/page message; media redirect; unknown → deny |
+| VI. Members-only gating fail closed | PASS | One checkbox per item; files removed from public uploads; missing-file requests redirect; post/page message; unknown benefits → deny. URL rewriting alone does not pass |
 | Scope & structure | PASS | Shortcode, provision/link, sync, roles, helpers, cache, gating only; `includes/` `admin/` `public/` `uninstall.php` |
 | Quality gates | PASS | Sandbox verification called out in quickstart; review against sanitization/cache/helpers/fail-closed |
 
@@ -47,7 +47,7 @@ Build a WordPress plugin that authenticates visitors through MemberSuite REST **
 
 ### Post–Phase 1 re-check
 
-Design artifacts (`research.md`, `data-model.md`, `contracts/*`, `quickstart.md`) preserve Outside SSO, helper contract, cache-first + fail-closed gating, and uninstall boundaries. **PASS**.
+Design artifacts (`research.md`, `data-model.md`, `contracts/*`, `quickstart.md`) preserve Outside SSO, helper contract, cache-first + fail-closed gating (including private media storage), and uninstall boundaries. **PASS**.
 
 ## Project Structure
 
@@ -85,10 +85,10 @@ includes/
 ├── class-msebaa-roles.php            # Register msebaa_member; mapping rules
 ├── class-msebaa-helpers.php          # Theme-facing functions (or helpers.php)
 ├── class-msebaa-content-gate.php     # Post/page the_content denial
-└── class-msebaa-media-gate.php       # URL filter + download endpoint
+└── class-msebaa-media-gate.php       # Private storage, download endpoint, content-link rewrite
 admin/
 ├── class-msebaa-admin-settings.php   # Settings API page
-└── class-msebaa-members-only-meta.php# Checkbox for post/page/attachment
+└── class-msebaa-members-only-meta.php# Checkbox: meta box for post/page; media field for attachment
 public/
 ├── class-msebaa-shortcode.php        # [msebaa_sso_login]
 ├── css/msebaa-sso-form.css           # Enqueued only where shortcode present

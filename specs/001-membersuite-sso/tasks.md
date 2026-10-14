@@ -101,7 +101,7 @@ WordPress plugin at repository root per `plan.md`: `membersuite-ebaa.php`, `incl
 
 ### Implementation for User Story 3
 
-- [X] T026 [P] [US3] Implement Members Only checkbox meta box in `admin/class-msebaa-members-only-meta.php` for `post`, `page`, and `attachment`: save meta `_msebaa_members_only` as `'1'` when checked, delete meta when unchecked; require `current_user_can( 'edit_post', $post_id )` (or attachment equivalent) + nonce; users who cannot edit MUST NOT change the flag
+- [X] T026 [P] [US3] Implement Members Only checkbox meta box in `admin/class-msebaa-members-only-meta.php` for `post`, `page`, and `attachment`: save meta `_msebaa_members_only` as `'1'` when checked, delete meta when unchecked; require `current_user_can( 'edit_post', $post_id )` (or attachment equivalent) + nonce; users who cannot edit MUST NOT change the flag. Superseded for attachments by T038: the side meta box is posts and pages only.
 - [X] T027 [US3] Implement shared entitlement predicate in `includes/class-msebaa-content-gate.php` (reusable by media gate): allowed if not members-only OR `manage_options` OR (logged in AND cached/synced `receives_member_benefits === true`); missing/unknown benefits → deny (fail closed)
 - [X] T028 [US3] Implement post/page body gating in `includes/class-msebaa-content-gate.php`: on singular `the_content`, if flagged and not allowed, replace body with translatable “for logged-in members only” message including login link from `msebaa_get_login_url( get_permalink() )`; do not strip archive teasers
 - [X] T029 [US3] Implement media URL rewriting and download endpoint in `includes/class-msebaa-media-gate.php`: filter `wp_get_attachment_url` (and related) so members-only attachments point to gated route (e.g. `?msebaa_download={attachment_id}`); on request, if allowed stream file with correct headers; if denied `wp_safe_redirect` to login page with non-member file message + return URL; also guard attachment singular via `template_redirect`
@@ -129,6 +129,23 @@ WordPress plugin at repository root per `plan.md`: `membersuite-ebaa.php`, `incl
 
 ---
 
+## Phase 7: Members-only file protection (US3 follow-up)
+
+**Goal**: One attachment checkbox; members-only files are absent from public uploads; uploads URLs and in-content links redirect or point at the download route.
+
+**Independent Test**: `quickstart.md` Scenario D
+
+- [X] T038 [US3] In `admin/class-msebaa-members-only-meta.php`, register the side meta box for `post` and `page` only. Keep a single Members Only field on `attachment_fields_to_edit` / `attachment_fields_to_save`. Remove the attachment branch from the `save_post` handler so the sidebar control cannot overwrite the media field.
+- [X] T039 [US3] In `includes/class-msebaa-media-gate.php`, on flag save move the original, `-scaled`, and intermediate files to `dirname( ABSPATH ) . '/msebaa-private/{attachment_id}/'`, delete the public copies, store `_msebaa_private_paths`, and point attachment metadata at the private files. If the directory is not writable, leave files public, do not set `_msebaa_members_only`, and show an admin error. On uncheck, move the files back and delete `_msebaa_private_paths`.
+- [X] T040 [US3] On `template_redirect`, if the request path matches a `_msebaa_private_paths` entry, redirect entitled users to the download route and everyone else to the login page with the existing file-denial message. Do not read or send the file in that response.
+- [X] T041 [US3] Stream `?msebaa_download=` from the private path. Rewrite `wp_get_attachment_url` (including wp-admin) for flagged attachments to that route. Keep the attachment-permalink guard.
+- [X] T042 [US3] Filter `the_content` so URLs listed in `_msebaa_private_paths` become the download route. When the flag is saved or cleared, update stored `post_content` on posts and pages that contain those URLs (gated route when on, public uploads URL when off).
+- [X] T043 [US3] On uninstall, restore any privately stored files to their public uploads paths before deleting `_msebaa_members_only` and `_msebaa_private_paths`. Do not delete attachment posts.
+- [X] T044 [US3] Run `quickstart.md` Scenario D on `https://ebaa.local`, including the uploads URL and an in-content link, as signed-out, benefits-false, benefits-true, and `manage_options`.
+  - 2026-10-14: Test PDF attachment 27229. Checking Members Only removed `wp-content/uploads/2026/10/msebaa-gate-test.pdf` and stored it in `app/msebaa-private/27229/`. File URL filtered to `/?msebaa_download=27229`. A post that contained the uploads URL was rewritten to that route and rendered that href. Signed-out and benefits-false (`joshuatdodd`) requests to the uploads URL and the download route returned 302 to `/login/?msebaa_media_denied=1` with no PDF body. Benefits-true (`joshebaatest`) uploads URL returned 302 to the download route; the download route returned the PDF. `manage_options` (`ColleenB`) download returned the PDF. Unchecking restored the public file and the post link. Test post and attachment were deleted afterward. Sidebar meta box types are `post,page` only.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -139,6 +156,7 @@ WordPress plugin at repository root per `plan.md`: `membersuite-ebaa.php`, `incl
 - **User Story 2 (Phase 4)**: Depends on Foundational; practically needs US1 sync/cache populated for meaningful member data, but helpers must still return safe defaults without US1 UI
 - **User Story 3 (Phase 5)**: Depends on Foundational + helpers/login URL (US2) and SSO return context (US1) for full acceptance; entitlement predicate can be built once cache/user meta exist
 - **Polish (Phase 6)**: After desired stories complete
+- **File protection (Phase 7)**: Depends on Phase 5. Order: T038, then T039, then T040 and T041, then T042, then T043. T044 last.
 
 ### User Story Dependencies
 
@@ -208,6 +226,7 @@ Task: "T029 Implement media URL rewriting and download endpoint in includes/clas
 3. US2 → theme helpers
 4. US3 → members-only posts/pages/media
 5. Polish → i18n, security pass, full quickstart A–E
+6. Phase 7 → private media files, one attachment checkbox, in-content link rewrite (quickstart Scenario D)
 
 ### Parallel Team Strategy
 

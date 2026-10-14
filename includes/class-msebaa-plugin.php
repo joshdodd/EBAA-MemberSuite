@@ -36,8 +36,9 @@ class Msebaa_Plugin {
 	 * Load dependencies and register runtime hooks.
 	 *
 	 * Does not execute SSO, password-reset, or gating side effects on bare include.
-	 * Requires class files, registers admin screens in wp-admin, and registers
-	 * front-end content and media gates on public requests.
+	 * Requires class files, registers admin screens in wp-admin, registers media
+	 * URL filters on every request, and registers front-end content gates on
+	 * public requests.
 	 */
 	public function init(): void {
 		$this->load_dependencies();
@@ -56,13 +57,13 @@ class Msebaa_Plugin {
 		Msebaa_Sso::register();
 		Msebaa_Shortcode::register();
 		Msebaa_Password_Reset_Shortcode::register();
+		Msebaa_Media_Gate::register();
 
 		if ( is_admin() ) {
 			Msebaa_Admin_Settings::register();
 			Msebaa_Members_Only_Meta::register();
 		} else {
 			Msebaa_Content_Gate::register();
-			Msebaa_Media_Gate::register();
 		}
 	}
 
