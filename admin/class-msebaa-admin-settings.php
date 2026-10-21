@@ -30,6 +30,18 @@ class Msebaa_Admin_Settings {
 	public static function register(): void {
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
+		add_action(
+			'update_option_' . Msebaa_Settings::OPTION_KEY,
+			array( __CLASS__, 'maybe_test_api_connection' ),
+			20,
+			2
+		);
+		add_action(
+			'add_option_' . Msebaa_Settings::OPTION_KEY,
+			array( __CLASS__, 'maybe_test_api_connection_on_add' ),
+			20,
+			2
+		);
 	}
 
 	/**
@@ -145,7 +157,7 @@ class Msebaa_Admin_Settings {
 	 */
 	public static function render_section(): void {
 		echo '<p>' . esc_html__(
-			'Configure MemberSuite SSO connection details, the API service account used for password-reset requests, and the page that embeds the login form.',
+			'Configure MemberSuite SSO connection details, the API service account used for password-reset requests, and the page that embeds the login form. Saving a changed API user email or password signs in with those credentials and reports whether MemberSuite accepted them.',
 			'membersuite-ebaa'
 		) . '</p>';
 	}
@@ -265,6 +277,114 @@ class Msebaa_Admin_Settings {
 			'Plain text. Leave blank to restore the default message.',
 			'membersuite-ebaa'
 		) . '</p>';
+	}
+
+	/**
+	 * Sign in with the API user when that email or password was just updated.
+	 *
+	 * Runs after the saved idToken is discarded, so a successful check stores a
+	 * fresh token. The option is already written; this only reports the result.
+	 *
+	 * @param mixed $old_value Previous settings array.
+	 * @param mixed $value     New settings array.
+	 */
+	public static function maybe_test_api_connection( $old_value, $value ): void {
+		$old = is_array( $old_value ) ? $old_value : array();
+		$new = is_array( $value ) ? $value : array();
+
+		if ( ! self::api_user_credentials_changed( $old, $new ) ) {
+			return;
+		}
+
+		self::report_api_connection( $new );
+	}
+
+	/**
+	 * Sign in with the API user when settings are first created with credentials.
+	 *
+	 * @param string $option Option name.
+	 * @param mixed  $value  New settings array.
+	 */
+	public static function maybe_test_api_connection_on_add( string $option, $value ): void {
+		if ( Msebaa_Settings::OPTION_KEY !== $option ) {
+			return;
+		}
+
+		$new = is_array( $value ) ? $value : array();
+
+		if ( ! self::api_user_credentials_changed( Msebaa_Settings::defaults(), $new ) ) {
+			return;
+		}
+
+		self::report_api_connection( $new );
+	}
+
+	/**
+	 * True when the API user email or password differs.
+	 *
+	 * @param array<string, mixed> $old Previous settings.
+	 * @param array<string, mixed> $new New settings.
+	 */
+	private static function api_user_credentials_changed( array $old, array $new ): bool {
+		foreach ( array( 'api_user_email', 'api_user_password' ) as $key ) {
+			$previous = isset( $old[ $key ] ) && is_scalar( $old[ $key ] ) ? (string) $old[ $key ] : '';
+			$current  = isset( $new[ $key ] ) && is_scalar( $new[ $key ] ) ? (string) $new[ $key ] : '';
+
+			if ( $previous !== $current ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Call MemberSuite loginUser and record a settings notice.
+	 *
+	 * The notice never includes the password, tokens, or the remote response body.
+	 *
+	 * @param array<string, mixed> $settings Saved settings, including the API password.
+	 */
+	private static function report_api_connection( array $settings ): void {
+		$tenant_id = isset( $settings['tenant_id'] ) && is_scalar( $settings['tenant_id'] )
+			? (string) $settings['tenant_id']
+			: '';
+		$email     = isset( $settings['api_user_email'] ) && is_scalar( $settings['api_user_email'] )
+			? (string) $settings['api_user_email']
+			: '';
+		$password  = isset( $settings['api_user_password'] ) && is_scalar( $settings['api_user_password'] )
+			? (string) $settings['api_user_password']
+			: '';
+
+		if ( '' === $tenant_id || '' === $email || '' === $password ) {
+			add_settings_error(
+				Msebaa_Settings::OPTION_KEY,
+				'msebaa_api_connection_failed',
+				__( 'Settings saved, but the API connection could not be tested because the Association Key, API user email, or API user password is missing.', 'membersuite-ebaa' ),
+				'error'
+			);
+			return;
+		}
+
+		$client = new Msebaa_Api_Client( $settings );
+		$result = $client->get_api_id_token( true );
+
+		if ( is_wp_error( $result ) ) {
+			add_settings_error(
+				Msebaa_Settings::OPTION_KEY,
+				'msebaa_api_connection_failed',
+				__( 'Settings saved, but the MemberSuite API connection failed. Check the API user email, password, and Association Key.', 'membersuite-ebaa' ),
+				'error'
+			);
+			return;
+		}
+
+		add_settings_error(
+			Msebaa_Settings::OPTION_KEY,
+			'msebaa_api_connection_succeeded',
+			__( 'Settings saved. The MemberSuite API connection succeeded.', 'membersuite-ebaa' ),
+			'success'
+		);
 	}
 
 	/**

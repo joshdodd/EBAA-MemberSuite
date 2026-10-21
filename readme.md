@@ -28,6 +28,8 @@ An administrator with the `manage_options` capability completes this once.
 
 Sign-in needs the Association Key. Password reset also needs the Association ID, API user email, and API user password. Until those four values are saved, the reset form tells the visitor that reset is temporarily unavailable.
 
+Saving a changed API user email or password signs in to MemberSuite with those credentials. The settings screen then confirms that the connection succeeded, or reports that it failed. Other setting changes do not make that call. A blank password keeps the stored password and is not treated as a change.
+
 ## Shortcodes
 
 Anyone who can publish shortcodes can place these in post or page content.
