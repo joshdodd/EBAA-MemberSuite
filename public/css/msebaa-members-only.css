@@ -1,0 +1,52 @@
+/**
+ * Members-only denial message.
+ *
+ * Enqueued only when the denial markup is rendered.
+ * Button treatment matches the EBAA theme button (cyan outline, blue hover).
+ */
+
+.msebaa-members-only__actions {
+	margin-block-start: 1.25rem;
+}
+
+.msebaa-members-only a.msebaa-members-only__action {
+	display: inline-block;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0.4rem 1.5rem;
+	border: 3px solid #00b3e3;
+	border-radius: 0;
+	background-color: transparent;
+	color: #111;
+	font-family: ff-good-headline-web-pro, sans-serif;
+	font-size: 1.7rem;
+	font-weight: 600;
+	letter-spacing: 0.33px;
+	line-height: 1.2;
+	text-align: center;
+	text-decoration: none;
+	text-transform: uppercase;
+	white-space: normal;
+	cursor: pointer;
+	transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out, color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.msebaa-members-only a.msebaa-members-only__action:hover,
+.msebaa-members-only a.msebaa-members-only__action:focus {
+	background-color: #0575bc;
+	border-color: #0575bc;
+	box-shadow: 0 0 8px rgba(5, 117, 188, 0.8);
+	color: #fff;
+	text-decoration: none;
+}
+
+.msebaa-members-only a.msebaa-members-only__action:focus-visible {
+	outline: 2px solid #0575bc;
+	outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.msebaa-members-only a.msebaa-members-only__action {
+		transition: none;
+	}
+}

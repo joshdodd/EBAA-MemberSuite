@@ -22,6 +22,11 @@ class Msebaa_Content_Gate
 	public const META_KEY = '_msebaa_members_only';
 
 	/**
+	 * Whether the denial stylesheet has been queued for this request.
+	 */
+	private static bool $assets_queued = false;
+
+	/**
 	 * Register the singular content filter.
 	 *
 	 * Front-end only. Call from the plugin boot when `! is_admin()`.
@@ -192,11 +197,36 @@ class Msebaa_Content_Gate
 			$action_label = __('Sign in', 'membersuite-ebaa');
 		}
 
+		$message = Msebaa_Settings::content_denial_message();
+
+		self::enqueue_assets();
+
 		$html  = '<div class="msebaa-members-only" role="status">';
-		$html .= '<p>' . esc_html__('This content is for logged-in members only.', 'membersuite-ebaa') . '</p>';
-		$html .= '<p><a href="' . esc_url($action_url) . '">' . esc_html($action_label) . '</a></p>';
+		$html .= '<p>' . nl2br( esc_html( $message ) ) . '</p>';
+		$html .= '<p class="msebaa-members-only__actions"><a class="msebaa-members-only__action" href="' . esc_url( $action_url ) . '">' . esc_html( $action_label ) . '</a></p>';
 		$html .= '</div>';
 
 		return $html;
+	}
+
+	/**
+	 * Enqueue denial styles when the message is rendered.
+	 *
+	 * `the_content` runs after `wp_head`, so the stylesheet prints in the footer.
+	 */
+	private static function enqueue_assets(): void
+	{
+		if (self::$assets_queued) {
+			return;
+		}
+
+		self::$assets_queued = true;
+
+		wp_enqueue_style(
+			'msebaa-members-only',
+			MSEBAA_PLUGIN_URL . 'public/css/msebaa-members-only.css',
+			array(),
+			MSEBAA_VERSION
+		);
 	}
 }

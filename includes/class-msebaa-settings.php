@@ -35,18 +35,24 @@ class Msebaa_Settings {
 	public const MAX_HTTP_TIMEOUT = 30;
 
 	/**
+	 * Default members-only post and page denial message.
+	 */
+	public const DEFAULT_CONTENT_DENIAL_MESSAGE = 'This content is for logged-in members only.';
+
+	/**
 	 * Default settings values.
 	 *
-	 * @return array{tenant_id: string, association_id: string, api_user_email: string, api_user_password: string, login_page_id: int, http_timeout: int}
+	 * @return array{tenant_id: string, association_id: string, api_user_email: string, api_user_password: string, login_page_id: int, http_timeout: int, content_denial_message: string}
 	 */
 	public static function defaults(): array {
 		return array(
-			'tenant_id'         => '',
-			'association_id'    => '',
-			'api_user_email'    => '',
-			'api_user_password' => '',
-			'login_page_id'     => 0,
-			'http_timeout'      => self::DEFAULT_HTTP_TIMEOUT,
+			'tenant_id'              => '',
+			'association_id'         => '',
+			'api_user_email'         => '',
+			'api_user_password'      => '',
+			'login_page_id'          => 0,
+			'http_timeout'           => self::DEFAULT_HTTP_TIMEOUT,
+			'content_denial_message' => self::DEFAULT_CONTENT_DENIAL_MESSAGE,
 		);
 	}
 
@@ -57,7 +63,7 @@ class Msebaa_Settings {
 	 * admin form can render the field blank without wiping the credential.
 	 *
 	 * @param mixed $input Raw settings.
-	 * @return array{tenant_id: string, association_id: string, api_user_email: string, api_user_password: string, login_page_id: int, http_timeout: int}
+	 * @return array{tenant_id: string, association_id: string, api_user_email: string, api_user_password: string, login_page_id: int, http_timeout: int, content_denial_message: string}
 	 */
 	public static function sanitize( $input ): array {
 		if ( ! is_array( $input ) ) {
@@ -100,20 +106,45 @@ class Msebaa_Settings {
 			$http_timeout = self::MAX_HTTP_TIMEOUT;
 		}
 
+		$content_denial_message = isset( $input['content_denial_message'] )
+			? sanitize_textarea_field( (string) $input['content_denial_message'] )
+			: $defaults['content_denial_message'];
+
+		if ( '' === $content_denial_message ) {
+			$content_denial_message = $defaults['content_denial_message'];
+		}
+
 		return array(
-			'tenant_id'         => $tenant_id,
-			'association_id'    => $association_id,
-			'api_user_email'    => $api_user_email,
-			'api_user_password' => $api_user_password,
-			'login_page_id'     => $login_page_id,
-			'http_timeout'      => $http_timeout,
+			'tenant_id'              => $tenant_id,
+			'association_id'         => $association_id,
+			'api_user_email'         => $api_user_email,
+			'api_user_password'      => $api_user_password,
+			'login_page_id'          => $login_page_id,
+			'http_timeout'           => $http_timeout,
+			'content_denial_message' => $content_denial_message,
 		);
+	}
+
+	/**
+	 * Members-only post and page denial message.
+	 *
+	 * The stored default stays translatable. A customized message is returned as saved.
+	 */
+	public static function content_denial_message(): string {
+		$settings = self::get();
+		$message  = $settings['content_denial_message'];
+
+		if ( self::DEFAULT_CONTENT_DENIAL_MESSAGE === $message ) {
+			return __( 'This content is for logged-in members only.', 'membersuite-ebaa' );
+		}
+
+		return $message;
 	}
 
 	/**
 	 * Return saved settings merged with defaults.
 	 *
-	 * @return array{tenant_id: string, association_id: string, api_user_email: string, api_user_password: string, login_page_id: int, http_timeout: int}
+	 * @return array{tenant_id: string, association_id: string, api_user_email: string, api_user_password: string, login_page_id: int, http_timeout: int, content_denial_message: string}
 	 */
 	public static function get(): array {
 		$stored = get_option( self::OPTION_KEY, array() );
@@ -159,7 +190,7 @@ class Msebaa_Settings {
 /**
  * Return plugin settings with defaults applied.
  *
- * @return array{tenant_id: string, association_id: string, api_user_email: string, api_user_password: string, login_page_id: int, http_timeout: int}
+ * @return array{tenant_id: string, association_id: string, api_user_email: string, api_user_password: string, login_page_id: int, http_timeout: int, content_denial_message: string}
  */
 function msebaa_get_settings(): array {
 	return Msebaa_Settings::get();

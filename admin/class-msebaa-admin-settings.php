@@ -113,6 +113,31 @@ class Msebaa_Admin_Settings {
 			self::PAGE_SLUG,
 			'msebaa_settings_main'
 		);
+
+		add_settings_section(
+			'msebaa_settings_content',
+			__( 'Members-only content', 'membersuite-ebaa' ),
+			array( __CLASS__, 'render_content_section' ),
+			self::PAGE_SLUG
+		);
+
+		add_settings_field(
+			'msebaa_content_denial_message',
+			__( 'Content Denial Message', 'membersuite-ebaa' ),
+			array( __CLASS__, 'render_content_denial_message_field' ),
+			self::PAGE_SLUG,
+			'msebaa_settings_content'
+		);
+	}
+
+	/**
+	 * Members-only content section description.
+	 */
+	public static function render_content_section(): void {
+		echo '<p>' . esc_html__(
+			'Message shown in place of a members-only post or page when the visitor is not allowed to view it.',
+			'membersuite-ebaa'
+		) . '</p>';
 	}
 
 	/**
@@ -222,6 +247,22 @@ class Msebaa_Admin_Settings {
 		);
 		echo '<p class="description">' . esc_html__(
 			'Seconds for MemberSuite HTTP requests (5–30).',
+			'membersuite-ebaa'
+		) . '</p>';
+	}
+
+	/**
+	 * Content denial message field.
+	 */
+	public static function render_content_denial_message_field(): void {
+		$settings = msebaa_get_settings();
+		printf(
+			'<textarea class="large-text" rows="3" id="msebaa_content_denial_message" name="%1$s[content_denial_message]">%2$s</textarea>',
+			esc_attr( Msebaa_Settings::OPTION_KEY ),
+			esc_textarea( $settings['content_denial_message'] )
+		);
+		echo '<p class="description">' . esc_html__(
+			'Plain text. Leave blank to restore the default message.',
 			'membersuite-ebaa'
 		) . '</p>';
 	}

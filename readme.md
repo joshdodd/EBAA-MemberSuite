@@ -75,7 +75,7 @@ In the editor sidebar, open the **Members Only** box and check **Members Only**.
 | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | Signed-in member currently receiving benefits                                | The full content                                                                                                 |
 | A user who can `manage_options` (admins/editors)                             | The full content                                                                                                 |
-| Everyone else, including a signed-in person whose benefits are false/unknown | The body is replaced with “This content is for logged-in members only.” and a **Sign in** link back to this item |
+| Everyone else, including a signed-in person whose benefits are false/unknown | The body is replaced with the Content Denial Message (default: “This content is for logged-in members only.”) and a **Sign in** link back to this item |
 
 Archive, search, and feed listings are left as the theme renders them. Titles and excerpts of members only posts can appear there. The restriction applies when the single post or page is opened.
 
