@@ -476,15 +476,15 @@ class Msebaa_Api_Client {
 	}
 
 	/**
-	 * Read primary organization, membership type, and expiration for one Individual.
+	 * Read job title, primary organization, membership type, and expiration for one Individual.
 	 *
 	 * Uses the member idToken from login. A transport or HTTP failure is a WP_Error
 	 * so the caller can keep the last stored values. An empty result is a successful
-	 * read with blank fields.
+	 * read with blank fields. Job title is the Individual `Title` field.
 	 *
 	 * @param string $id_token Member idToken (never logged).
 	 * @param string $owner_id MemberSuite Individual GUID from whoami.
-	 * @return array{primary_organization: string, membership_type: string, membership_expiration: string}|WP_Error
+	 * @return array{job_title: string, primary_organization: string, membership_type: string, membership_expiration: string}|WP_Error
 	 */
 	public function individual_membership_profile( string $id_token, string $owner_id ) {
 		if ( '' === $this->tenant_id || '' === $id_token ) {
@@ -502,7 +502,7 @@ class Msebaa_Api_Client {
 		}
 
 		$msql = sprintf(
-			"SELECT PrimaryOrganization.Name, Membership.Type.Name, Membership.ExpirationDate FROM Individual WHERE ID = '%s'",
+			"SELECT Title, PrimaryOrganization.Name, Membership.Type.Name, Membership.ExpirationDate FROM Individual WHERE ID = '%s'",
 			$owner_id
 		);
 
@@ -548,6 +548,7 @@ class Msebaa_Api_Client {
 		$record = $this->first_record( $data );
 		if ( null === $record ) {
 			return array(
+				'job_title'             => '',
 				'primary_organization'  => '',
 				'membership_type'       => '',
 				'membership_expiration' => '',
@@ -555,6 +556,7 @@ class Msebaa_Api_Client {
 		}
 
 		return array(
+			'job_title'             => sanitize_text_field( $this->value_at_path( $record, 'title' ) ),
 			'primary_organization'  => sanitize_text_field( $this->value_at_path( $record, 'primaryOrganization.Name' ) ),
 			'membership_type'       => sanitize_text_field( $this->value_at_path( $record, 'membership.Type.Name' ) ),
 			'membership_expiration' => $this->normalize_expiration_date( $this->value_at_path( $record, 'membership.ExpirationDate' ) ),

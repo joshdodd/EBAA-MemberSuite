@@ -52,6 +52,11 @@ class Msebaa_User_Repository {
 	public const META_EMAIL = 'msebaa_email';
 
 	/**
+	 * Meta key: job title (Individual Title).
+	 */
+	public const META_JOB_TITLE = 'msebaa_job_title';
+
+	/**
 	 * Meta key: primary organization name.
 	 */
 	public const META_PRIMARY_ORGANIZATION = 'msebaa_primary_organization';
@@ -174,6 +179,13 @@ class Msebaa_User_Repository {
 			self::META_EMAIL,
 			isset( $data['email'] ) ? sanitize_email( (string) $data['email'] ) : ''
 		);
+		if ( array_key_exists( 'job_title', $data ) ) {
+			update_user_meta(
+				$user_id,
+				self::META_JOB_TITLE,
+				sanitize_text_field( (string) $data['job_title'] )
+			);
+		}
 		if ( array_key_exists( 'primary_organization', $data ) ) {
 			update_user_meta(
 				$user_id,
@@ -227,6 +239,7 @@ class Msebaa_User_Repository {
 			'first_name'               => (string) get_user_meta( $user_id, self::META_FIRST_NAME, true ),
 			'last_name'                => (string) get_user_meta( $user_id, self::META_LAST_NAME, true ),
 			'email'                    => (string) get_user_meta( $user_id, self::META_EMAIL, true ),
+			'job_title'                => (string) get_user_meta( $user_id, self::META_JOB_TITLE, true ),
 			'primary_organization'     => (string) get_user_meta( $user_id, self::META_PRIMARY_ORGANIZATION, true ),
 			'membership_type'          => (string) get_user_meta( $user_id, self::META_MEMBERSHIP_TYPE, true ),
 			'membership_expiration'    => (string) get_user_meta( $user_id, self::META_MEMBERSHIP_EXPIRATION, true ),

@@ -34,6 +34,7 @@ array(
 	'email'                      => string,
 	'first_name'                 => string,
 	'last_name'                  => string,
+	'job_title'                  => string, // Individual Title, or ''
 	'receives_member_benefits'   => bool,
 	'membership_id'              => string, // may be ''
 	'primary_organization'       => string, // organization name, or ''
@@ -48,7 +49,7 @@ array(
 
 ## `msebaa_get_member_field( string $key ): string`
 
-Returns a string field from the current member snapshot. Allowed keys: `owner_id`, `email`, `first_name`, `last_name`, `membership_id`, `primary_organization`, `membership_type`, `membership_expiration`, `last_synced`. Unknown keys return `''`.
+Returns a string field from the current member snapshot. Allowed keys: `owner_id`, `email`, `first_name`, `last_name`, `job_title`, `membership_id`, `primary_organization`, `membership_type`, `membership_expiration`, `last_synced`. Unknown keys return `''`.
 
 **Default**: `''`
 

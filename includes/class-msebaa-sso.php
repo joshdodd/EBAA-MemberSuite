@@ -314,8 +314,8 @@ class Msebaa_Sso
 
 		$membership = $client->individual_membership_profile($login['id_token'], $owner_id);
 		if (is_wp_error($membership)) {
-			// Organization and membership dates are profile data. Sign-in still completes
-			// and the last stored values stay in place.
+			// Job title, organization, and membership dates are profile data. Sign-in still
+			// completes and the last stored values stay in place.
 			$membership = null;
 		}
 
@@ -621,6 +621,7 @@ class Msebaa_Sso
 			return $profile;
 		}
 
+		$profile['job_title']             = isset($membership['job_title']) ? (string) $membership['job_title'] : '';
 		$profile['primary_organization']  = isset($membership['primary_organization']) ? (string) $membership['primary_organization'] : '';
 		$profile['membership_type']       = isset($membership['membership_type']) ? (string) $membership['membership_type'] : '';
 		$profile['membership_expiration'] = isset($membership['membership_expiration']) ? (string) $membership['membership_expiration'] : '';
@@ -632,7 +633,7 @@ class Msebaa_Sso
 	 * Create or reuse a WP user linked by MemberSuite ownerId only.
 	 *
 	 * @param array<string, mixed>      $whoami     whoami payload.
-	 * @param array<string, mixed>|null $membership CRM fields, or null to leave org/type/expiration unchanged.
+	 * @param array<string, mixed>|null $membership CRM fields, or null to leave job title, org, type, and expiration unchanged.
 	 * @return int|WP_Error User ID or error.
 	 */
 	public static function provision_or_link(array $whoami, ?array $membership = null)
@@ -722,6 +723,7 @@ class Msebaa_Sso
 		);
 
 		if (is_array($membership)) {
+			$link['job_title']             = isset($membership['job_title']) ? (string) $membership['job_title'] : '';
 			$link['primary_organization']  = isset($membership['primary_organization']) ? (string) $membership['primary_organization'] : '';
 			$link['membership_type']       = isset($membership['membership_type']) ? (string) $membership['membership_type'] : '';
 			$link['membership_expiration'] = isset($membership['membership_expiration']) ? (string) $membership['membership_expiration'] : '';
