@@ -13,7 +13,7 @@ An administrator with the `manage_options` capability completes this once.
  [msebaa_sso_login]
 ```
 
-3. Open **Settings → MemberSuite EBAA** and save the connection:
+1. Open **Settings → MemberSuite EBAA** and save the connection:
 
 | Field                 | What to enter                                                                                                                       |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -24,7 +24,7 @@ An administrator with the `manage_options` capability completes this once.
 | **Login page**        | The published page that contains `[msebaa_sso_login]`. Theme login links and members-only “Sign in” links use this page.            |
 | **HTTP timeout**      | Seconds to wait on MemberSuite requests. Allowed range is 5–30. The default is 15.                                                  |
 
-4. Optionally create a second page with `[msebaa_password_reset]` if you want a standalone reset form. The sign-in page already includes a **Forgot password?** panel, so a second page is only needed when the reset form should live on its own.
+1. Optionally create a second page with `[msebaa_password_reset]` if you want a standalone reset form. The sign-in page already includes a **Forgot password?** panel, so a second page is only needed when the reset form should live on its own.
 
 Sign-in needs the Association Key. Password reset also needs the Association ID, API user email, and API user password. Until those four values are saved, the reset form tells the visitor that reset is temporarily unavailable.
 
@@ -73,10 +73,10 @@ Editors mark individual posts, pages, and media files.
 
 In the editor sidebar, open the **Members Only** box and check **Members Only**. Site administrators can still open the item.
 
-| Who is viewing the single post or page                                       | What they see                                                                                                    |
-| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Signed-in member currently receiving benefits                                | The full content                                                                                                 |
-| A user who can `manage_options` (admins/editors)                             | The full content                                                                                                 |
+| Who is viewing the single post or page                                       | What they see                                                                                                                                          |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Signed-in member currently receiving benefits                                | The full content                                                                                                                                       |
+| A user who can `manage_options` (admins/editors)                             | The full content                                                                                                                                       |
 | Everyone else, including a signed-in person whose benefits are false/unknown | The body is replaced with the Content Denial Message (default: “This content is for logged-in members only.”) and a **Sign in** link back to this item |
 
 Archive, search, and feed listings are left as the theme renders them. Titles and excerpts of members only posts can appear there. The restriction applies when the single post or page is opened.
@@ -85,7 +85,23 @@ Templates should print the body with `the_content()`. The plugin replaces restri
 
 ### Media
 
-TBD
+Mark a file from the Media Library or the attachment edit screen. There is one **Members Only** checkbox, in the attachment details. The Edit Media screen does not add a second checkbox in the sidebar.
+
+Check **Members Only** and save. The plugin moves that file, including resized and scaled copies, out of `wp-content/uploads` into a private folder next to the WordPress directory. The public uploads address no longer points at a file. The **File URL** field changes to a download link on the site, shaped like `/?msebaa_download=123`.
+
+**Use that File URL when inserting the file**. If a post or page already contains the old uploads address, saving the checkbox rewrites those stored links to the download link. Rendered content does the same for any uploads address that is still present. Clearing the checkbox moves the files back to `wp-content/uploads` and points those links at the public file again.
+
+Files that were marked Members Only before this protection was in place stay in `wp-content/uploads` until an editor opens the file and clicks **Update** once. That save moves them.
+
+If the private folder cannot be written, the checkbox is not saved and an admin error explains that the file is still public.
+
+| Who requests the file                                                                                   | What happens                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Signed-in member currently receiving benefits                                                           | The file downloads                                                                                                                                  |
+| A user who can `manage_options`                                                                         | The file downloads                                                                                                                                  |
+| Everyone else, including a signed-out visitor or a signed-in person whose benefits are false or unknown | Redirect to the configured login page with “This file is not accessible to non-members.” After a successful member sign-in, they return to the file |
+
+The same redirect applies to the attachment permalink, the old uploads address, a resized copy, and the download link. The response does not include the file. Uninstalling the plugin moves privately stored files back to `wp-content/uploads` and does not delete the media items.
 
 ## Theme helpers
 
