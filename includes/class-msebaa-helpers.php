@@ -93,13 +93,18 @@ class Msebaa_Helpers {
 			return null;
 		}
 
+		$receives = self::benefits_from_sources( $cache, $snapshot );
+		if ( self::current_user_retains_member_benefits() ) {
+			$receives = true;
+		}
+
 		return array(
 			'owner_id'                 => $owner_id,
 			'email'                    => self::pick_string( $profile, $snapshot, 'email' ),
 			'first_name'               => self::pick_string( $profile, $snapshot, 'first_name' ),
 			'last_name'                => self::pick_string( $profile, $snapshot, 'last_name' ),
 			'job_title'                => self::pick_string( $profile, $snapshot, 'job_title' ),
-			'receives_member_benefits' => self::benefits_from_sources( $cache, $snapshot ),
+			'receives_member_benefits' => $receives,
 			'membership_id'            => is_array( $snapshot ) ? (string) ( $snapshot['membership_id'] ?? '' ) : '',
 			'primary_organization'     => self::pick_string( $profile, $snapshot, 'primary_organization' ),
 			'membership_type'          => self::pick_string( $profile, $snapshot, 'membership_type' ),
@@ -129,14 +134,39 @@ class Msebaa_Helpers {
 
 	/**
 	 * Benefits flag for the current user without a remote call.
+	 *
+	 * Administrators and editors are true even when they are not linked, or
+	 * when the stored flag is false.
 	 */
 	public static function current_user_receives_benefits(): bool {
+		if ( self::current_user_retains_member_benefits() ) {
+			return true;
+		}
+
 		$member = self::current_member();
 		if ( null === $member ) {
 			return false;
 		}
 
 		return true === $member['receives_member_benefits'];
+	}
+
+	/**
+	 * Whether the signed-in user is an administrator or editor.
+	 *
+	 * Those roles keep member benefits regardless of the MemberSuite flag.
+	 */
+	private static function current_user_retains_member_benefits(): bool {
+		if ( ! self::is_ready() || ! is_user_logged_in() || ! class_exists( 'Msebaa_Roles' ) ) {
+			return false;
+		}
+
+		$user = wp_get_current_user();
+		if ( ! $user instanceof WP_User || $user->ID <= 0 ) {
+			return false;
+		}
+
+		return Msebaa_Roles::retains_member_benefits( $user );
 	}
 
 	/**
@@ -238,10 +268,9 @@ function msebaa_is_user_logged_in(): bool {
 /**
  * Whether the current user is signed in and receives member benefits.
  *
- * Site administrators are not treated as members unless their cached snapshot
- * also has receives_member_benefits true. Use current_user_can( 'manage_options' )
- * in a theme when an operational override is required.
- * Safe default before `init`, when signed out, or when benefits are unknown: false.
+ * Administrators and editors are true even when their MemberSuite snapshot
+ * is missing or false. Safe default before `init`, when signed out, or when
+ * benefits are unknown: false.
  */
 function msebaa_is_member(): bool {
 	if ( ! msebaa_is_user_logged_in() ) {
@@ -255,6 +284,7 @@ function msebaa_is_member(): bool {
  * Cached member-benefits flag for the current user.
  *
  * Reads Msebaa_Cache, then the user-repository snapshot. Does not call MemberSuite.
+ * Administrators and editors are true even when that stored flag is missing or false.
  * Safe default before `init`, when signed out, or when the flag is missing: false.
  */
 function msebaa_receives_member_benefits(): bool {

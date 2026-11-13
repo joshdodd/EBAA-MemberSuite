@@ -148,6 +148,11 @@ class Msebaa_User_Repository {
 		}
 
 		$receives = ! empty( $data['receives_member_benefits'] );
+		$user     = get_userdata( $user_id );
+		// Administrators and editors stay true. MemberSuite must not store false.
+		if ( $user instanceof WP_User && class_exists( 'Msebaa_Roles' ) && Msebaa_Roles::retains_member_benefits( $user ) ) {
+			$receives = true;
+		}
 		$synced   = isset( $data['last_synced'] )
 			? sanitize_text_field( (string) $data['last_synced'] )
 			: gmdate( 'Y-m-d H:i:s' );

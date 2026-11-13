@@ -45,6 +45,7 @@ class Msebaa_Plugin {
 
 		add_action( 'init', array( $this, 'load_textdomain' ) );
 		add_action( 'init', array( 'Msebaa_Roles', 'maybe_register_role' ) );
+		add_action( 'init', array( 'Msebaa_Roles', 'persist_staff_benefits' ) );
 
 		/*
 		 * Theme helpers on every front-end and admin request. The file is

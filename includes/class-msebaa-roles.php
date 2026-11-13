@@ -34,6 +34,58 @@ class Msebaa_Roles {
 	}
 
 	/**
+	 * Store a true benefits flag for the current administrator or editor.
+	 *
+	 * Runs on `init` so the cached flag is already true in wp-admin, including
+	 * the block editor. Does nothing once user meta and the transient are true.
+	 * MemberSuite sync cannot replace that true value for these roles.
+	 */
+	public static function persist_staff_benefits(): void {
+		if ( ! function_exists( 'is_user_logged_in' ) || ! is_user_logged_in() ) {
+			return;
+		}
+
+		$user = wp_get_current_user();
+		if ( ! $user instanceof WP_User || $user->ID <= 0 || ! self::retains_member_benefits( $user ) ) {
+			return;
+		}
+
+		$user_id = (int) $user->ID;
+
+		if ( class_exists( 'Msebaa_User_Repository' ) ) {
+			$stored = get_user_meta( $user_id, Msebaa_User_Repository::META_RECEIVES_BENEFITS, true );
+			if ( '1' !== (string) $stored ) {
+				update_user_meta( $user_id, Msebaa_User_Repository::META_RECEIVES_BENEFITS, '1' );
+			}
+		}
+
+		if ( ! class_exists( 'Msebaa_Cache' ) ) {
+			return;
+		}
+
+		$cached = Msebaa_Cache::get( $user_id );
+		if ( is_array( $cached ) && true === ( $cached['receives_member_benefits'] ?? null ) ) {
+			return;
+		}
+
+		$profile = ( is_array( $cached ) && isset( $cached['profile'] ) && is_array( $cached['profile'] ) )
+			? $cached['profile']
+			: array();
+		$synced  = ( is_array( $cached ) && isset( $cached['synced_at'] ) && is_scalar( $cached['synced_at'] ) )
+			? (string) $cached['synced_at']
+			: gmdate( 'Y-m-d H:i:s' );
+
+		Msebaa_Cache::set(
+			$user_id,
+			array(
+				'receives_member_benefits' => true,
+				'profile'                  => $profile,
+				'synced_at'                => $synced,
+			)
+		);
+	}
+
+	/**
 	 * Register the member role when it is absent.
 	 *
 	 * Activation seeds the role, but a site activated before the role existed —
@@ -54,6 +106,41 @@ class Msebaa_Roles {
 	}
 
 	/**
+	 * Whether MemberSuite sync must leave this user's benefits flag true.
+	 *
+	 * Administrators and editors always receive member benefits. A false or
+	 * missing MemberSuite value must not replace that. Custom roles with
+	 * `manage_options` are included with administrators.
+	 *
+	 * @param WP_User $user User to inspect.
+	 */
+	public static function retains_member_benefits( WP_User $user ): bool {
+		if ( user_can( $user, 'manage_options' ) ) {
+			return true;
+		}
+
+		$roles = array( 'administrator', 'editor' );
+
+		/**
+		 * Filter role slugs that always receive member benefits.
+		 *
+		 * Sync must not persist a false benefits flag for these roles.
+		 *
+		 * @param string[] $roles Role slugs.
+		 * @param WP_User  $user  User being evaluated.
+		 */
+		$roles = apply_filters( 'msebaa_roles_retaining_member_benefits', $roles, $user );
+
+		foreach ( (array) $roles as $role ) {
+			if ( in_array( (string) $role, (array) $user->roles, true ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Whether the user has a privileged role that must not be remapped.
 	 *
 	 * @param WP_User $user User to inspect.
@@ -63,7 +150,11 @@ class Msebaa_Roles {
 			return true;
 		}
 
-		$privileged = array( 'administrator' );
+		if ( self::retains_member_benefits( $user ) ) {
+			return true;
+		}
+
+		$privileged = array( 'administrator', 'editor' );
 
 		/**
 		 * Filter which role slugs are treated as privileged (never remapped by SSO).
@@ -86,7 +177,7 @@ class Msebaa_Roles {
 	 * Map membership benefits to the appropriate WordPress role.
 	 *
 	 * Sets `msebaa_member` when benefits are true, otherwise `subscriber`.
-	 * Does not overwrite privileged roles (e.g. administrator / manage_options).
+	 * Does not overwrite privileged roles (administrator, editor, manage_options).
 	 *
 	 * @param bool    $receives_benefits Whether the individual receives member benefits.
 	 * @param WP_User $user              Target user.

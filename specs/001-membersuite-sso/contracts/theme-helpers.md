@@ -14,15 +14,15 @@ True when a WordPress user session is active (MemberSuite-linked or not).
 
 ## `msebaa_is_member(): bool`
 
-True when the current user is signed in and currently receives member benefits (`receivesMemberBenefits`), based on cached/synced meta. Site administrators are **not** automatically true here unless they also receive benefits; use WordPress `current_user_can( 'manage_options' )` separately for operational overrides in themes if needed.
+True when the current user is signed in and currently receives member benefits (`receivesMemberBenefits`), based on cached/synced meta. WordPress administrators and editors are **always** true, including when they are not linked to MemberSuite or when MemberSuite reports benefits as false. Sync stores `true` for those roles and does not replace it.
 
 **Default**: `false`
 
 ## `msebaa_receives_member_benefits(): bool`
 
-Cached benefits flag for the current user.
+Cached benefits flag for the current user. Administrators and editors are always `true`; a false MemberSuite value is not written over that flag.
 
-**Default**: `false` (signed out or unknown)
+**Default**: `false` (signed out, or a non-staff user whose flag is unknown)
 
 ## `msebaa_get_current_member(): ?array`
 

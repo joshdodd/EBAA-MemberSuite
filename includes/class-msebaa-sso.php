@@ -333,7 +333,11 @@ class Msebaa_Sso
 		}
 
 		// true → msebaa_member; null/false/absent → subscriber; privileged roles untouched.
+		// Administrators and editors stay true even when MemberSuite reports false.
 		$receives = self::receives_benefits_from_whoami($whoami);
+		if (Msebaa_Roles::retains_member_benefits($user)) {
+			$receives = true;
+		}
 		msebaa_map_role_from_benefits($receives, $user);
 
 		$synced_at = gmdate('Y-m-d H:i:s');

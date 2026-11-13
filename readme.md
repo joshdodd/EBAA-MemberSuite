@@ -73,10 +73,11 @@ Editors mark individual posts, pages, and media files.
 
 In the editor sidebar, open the **Members Only** box and check **Members Only**. Site administrators can still open the item.
 
+WordPress administrators and editors always count as receiving member benefits. That stays true when they are not linked to MemberSuite, and when a later sign-in reports benefits as false. Sign-in does not change their administrator or editor role.
+
 | Who is viewing the single post or page                                       | What they see                                                                                                                                          |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Signed-in member currently receiving benefits                                | The full content                                                                                                                                       |
-| A user who can `manage_options` (admins/editors)                             | The full content                                                                                                                                       |
+| Signed-in member currently receiving benefits, including administrators and editors | The full content                                                                                                                                       |
 | Everyone else, including a signed-in person whose benefits are false/unknown | The body is replaced with the Content Denial Message (default: “This content is for logged-in members only.”) and a **Sign in** link back to this item |
 
 Archive, search, and feed listings are left as the theme renders them. Titles and excerpts of members only posts can appear there. The restriction applies when the single post or page is opened.
@@ -97,8 +98,7 @@ If the private folder cannot be written, the checkbox is not saved and an admin 
 
 | Who requests the file                                                                                   | What happens                                                                                                                                        |
 | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Signed-in member currently receiving benefits                                                           | The file downloads                                                                                                                                  |
-| A user who can `manage_options`                                                                         | The file downloads                                                                                                                                  |
+| Signed-in member currently receiving benefits, including administrators and editors                     | The file downloads                                                                                                                                  |
 | Everyone else, including a signed-out visitor or a signed-in person whose benefits are false or unknown | Redirect to the configured login page with “This file is not accessible to non-members.” After a successful member sign-in, they return to the file |
 
 The same redirect applies to the attachment permalink, the old uploads address, a resized copy, and the download link. The response does not include the file. Uninstalling the plugin moves privately stored files back to `wp-content/uploads` and does not delete the media items.
@@ -121,7 +121,7 @@ if ( msebaa_is_user_logged_in() ) {
 
 ### `msebaa_is_member(): bool`
 
-True when the visitor is signed in **and** currently receiving member benefits. Default: `false`.
+True when the visitor is signed in **and** currently receiving member benefits. Administrators and editors are true even when MemberSuite benefits are missing or false. Default: `false`.
 
 ```php
 if ( msebaa_is_member() ) {
@@ -131,7 +131,7 @@ if ( msebaa_is_member() ) {
 
 ### `msebaa_receives_member_benefits(): bool`
 
-The ReceivesMemberBenefits flag for the current user. Default: `false` when signed out or when the flag is missing. This is the same check the content gate uses.
+The ReceivesMemberBenefits flag for the current user. Administrators and editors are always `true`: the plugin stores that flag as true and does not replace it when MemberSuite reports false. Default: `false` when signed out, or when a non-staff user’s flag is missing. This is the same check the content gate uses.
 
 ```php
 $show_membership_notice = msebaa_is_user_logged_in() && ! msebaa_receives_member_benefits();

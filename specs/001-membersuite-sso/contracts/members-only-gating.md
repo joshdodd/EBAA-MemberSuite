@@ -22,7 +22,7 @@ allowed =
   OR ( is_user_logged_in() AND receives_member_benefits_cached === true )
 ```
 
-If benefits status unknown/missing for a logged-in non-admin → **not allowed** (fail closed).
+Administrators and editors always have `receives_member_benefits` cached as true. Sign-in does not store false for those roles, and it does not change their WordPress role. If benefits status is unknown or missing for any other logged-in user → **not allowed** (fail closed).
 
 ## Posts and pages (singular view)
 

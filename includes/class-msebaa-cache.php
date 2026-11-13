@@ -65,8 +65,14 @@ class Msebaa_Cache {
 			return;
 		}
 
+		$benefits = ! empty( $snapshot['receives_member_benefits'] );
+		$user     = get_userdata( $user_id );
+		if ( $user instanceof WP_User && class_exists( 'Msebaa_Roles' ) && Msebaa_Roles::retains_member_benefits( $user ) ) {
+			$benefits = true;
+		}
+
 		$normalized = array(
-			'receives_member_benefits' => ! empty( $snapshot['receives_member_benefits'] ),
+			'receives_member_benefits' => $benefits,
 			'profile'                  => isset( $snapshot['profile'] ) && is_array( $snapshot['profile'] )
 				? $snapshot['profile']
 				: array(),
